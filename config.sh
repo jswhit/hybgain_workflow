@@ -60,10 +60,10 @@ export controlanal="false" # hybrid-cov high-res control analysis as in ops
 # (hybgain will be set to false if controlanal=true)
 
 # override values from above for debugging.
-export cleanup_ensmean='false'
+#export cleanup_ensmean='false'
 #export recenter_fcst="false"
-export cleanup_controlanl='false'
-export cleanup_observer='false'
+#export cleanup_controlanl='false'
+#export cleanup_observer='false'
 #export cleanup_anal='false'
 #export recenter_anal="false"
 #export cleanup_fg='false'
@@ -141,30 +141,22 @@ elif [ $machine == "hercules" ]; then
    export HDF5_DISABLE_VERSION_CHECK=1
    export WGRIB=`which wgrib`
 elif [ "$machine" == 'gaea' ]; then
-   export basedir=/lustre/f2/dev/${USER}
-   export datadir=/lustre/f2/scratch/${USER}
+   export basedir=/gpfs/f6/ira-da/scratch/${USER}
+   export datadir=${basedir}
    export hsidir="/ESRL/BMC/gsienkf/2year/whitaker/gaea/${exptname}"
-   export obs_datapath=/lustre/f2/dev/Jeffrey.S.Whitaker/dumps
-   source /lustre/f2/dev/role.epic/contrib/Lmod_init.sh
-   module unload cray-libsci
-   module load PrgEnv-intel/8.3.3
-   module load intel-classic/2023.1.0
-   module load cray-mpich/8.1.25
-   module use /lustre/f2/dev/wpo/role.epic/contrib/spack-stack/c5/spack-stack-dev-20230717/envs/unified-env/install/modulefiles/Core
-   module use /lustre/f2/dev/wpo/role.epic/contrib/spack-stack/c5/modulefiles
-   module load stack-intel/2023.1.0
-   module load stack-cray-mpich/8.1.25
-   module load stack-python/3.9.12
+   export obs_datapath=/gpfs/f6/ira-da/proj-shared/Jeffrey.S.Whitaker/dumps
+   module use /ncrc/proj/epic/spack-stack/c6/spack-stack-1.6.0/envs/gsi-addon/install/modulefiles/Core
+   module load stack-intel/2023.2.0
+   module load stack-cray-mpich/8.1.29
    module load parallelio
-   module load bufr/11.7.0
    module load crtm/2.4.0
    module load gsi-ncdiag
    module load grib-util
+   module load awscli-v2
+   module load bufr/11.7.0
+   module load python
+   module load py-netcdf4
    module list
-   export PATH="/lustre/f2/dev/Jeffrey.S.Whitaker/conda/bin:${PATH}"
-   which python
-   #export MKLROOT=/opt/intel/oneapi/mkl/2022.0.2
-   #export LD_LIBRARY_PATH="${MKLROOT}/lib/intel64:${LD_LIBRARY_PATH}"
    export HDF5_DISABLE_VERSION_CHECK=1
    export WGRIB=`which wgrib`
 else
@@ -461,12 +453,12 @@ elif [ "$machine" == 'orion' ] || [ $machine == "hercules" ]; then
    export gsiexec=${execdir}/global_gsi
    export CHGRESEXEC=${execdir}/enkf_chgres_recenter_nc.x
 elif [ "$machine" == 'gaea' ]; then
-   export fv3gfspath=/lustre/f2/dev/Jeffrey.S.Whitaker/fix_NEW
-   export FIXDIR=/lustre/f2/pdata/ncep_shared/emc.nemspara/RT/NEMSfv3gfs/input-data-20220414
+   export fv3gfspath=/gpfs/f6/drsa-precip4/proj-shared/Jeffrey.S.Whitaker/fix_NEW
+   export FIXDIR=/gpfs/f6/drsa-precip4/proj-shared/Jeffrey.S.Whitaker/input-data-20240501
    export FIXDIR_gcyc=${fv3gfspath}
    export FIXFV3=${fv3gfspath}/fix_fv3_gmted2010
    export FIXGLOBAL=${fv3gfspath}/fix_am
-   export gsipath=/lustre/f2/dev/Jeffrey.S.Whitaker/GSI
+   export gsipath=/gpfs/f6/drsa-precip4/proj-shared/Jeffrey.S.Whitaker/GSI
    export fixgsi=${gsipath}/fix
    export fixcrtm=$CRTM_FIX
    export execdir=${enkfscripts}/exec_${machine}

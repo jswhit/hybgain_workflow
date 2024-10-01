@@ -452,6 +452,9 @@ use_hyper_thread:        F
 ncores_per_node:         ${corespernode}
 restart_interval:        ${restart_interval}
 quilting:                .true.
+quilting_restart:        .false.
+output_history:          .true.
+history_file_on_native_grid: .false.
 write_groups:            ${write_groups}
 write_tasks_per_group:   ${write_tasks}
 num_files:               2
@@ -469,10 +472,7 @@ write_nsflip:            .true.
 iau_offset:              ${iau_offset}
 imo:                     ${LONB}
 jmo:                     ${LATB}
-nfhout:                  ${FHOUT}
-nfhmax_hf:               -1
-nfhout_hf:               -1
-nsout:                   -1
+output_fh:               ${FHOUT} -1
 EOF
 cat model_configure
 
@@ -531,6 +531,7 @@ else
    echo "done running model.. `date`"
 fi
 
+#ls -l
 export DATOUT=${DATOUT:-$datapathp1}
 # this is a hack to work around the fact that first time step history
 # file is not written if restart file requested at first time step.
