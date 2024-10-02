@@ -3,7 +3,7 @@
 hr=`echo $analdate | cut -c9-10`
 analdatem1=`${incdate} $analdate -6`
 exitstat=0
-if [ $machine == "gaea" ]; then
+if [ $machine == "gaeac5" ] ||  [ $machine == "gaeac6" ]; then
    htar=/sw/rdtn/hpss/default/bin/htar
    hsi=/sw/rdtn/hpss/default/bin/hsi
 else

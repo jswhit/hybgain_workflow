@@ -140,7 +140,29 @@ elif [ $machine == "hercules" ]; then
    module list
    export HDF5_DISABLE_VERSION_CHECK=1
    export WGRIB=`which wgrib`
-elif [ "$machine" == 'gaea' ]; then
+elif [ "$machine" == 'gaeac5' ]; then
+   export basedir=/gpfs/f5/nggps_psd/scratch/${USER}
+   export datadir=${basedir}
+   export hsidir="/ESRL/BMC/gsienkf/2year/whitaker/gaea/${exptname}"
+   export obs_datapath=/gpfs/f5/nggps_psd/proj-shared/Jeffrey.S.Whitaker/dumps
+   module use /ncrc/proj/epic/spack-stack//spack-stack-1.6.0/envs/gsi-addon-dev/install/modulefiles/Core
+   module load stack-intel/2023.1.0
+   module load stack-cray-mpich/8.1.25
+   module load netcdf-c/4.9.2
+   module load netcdf-fortran/4.6.1
+   #module load cray-mpich/8.1.28
+   module load parallelio
+   module load crtm/2.4.0.1
+   module load gsi-ncdiag
+   module load grib-util
+   module load bufr/11.7.0
+   module load python
+   module load py-netcdf4
+   module list
+   export LD_LIBRARY_PATH="/opt/intel/oneapi/mkl/2022.0.2/lib/intel64:${LD_LIBRARY_PATH}"
+   export HDF5_DISABLE_VERSION_CHECK=1
+   export WGRIB=`which wgrib`
+elif [ "$machine" == 'gaeac6' ]; then
    export basedir=/gpfs/f6/ira-da/scratch/${USER}
    export datadir=${basedir}
    export hsidir="/ESRL/BMC/gsienkf/2year/whitaker/gaea/${exptname}"
@@ -148,19 +170,20 @@ elif [ "$machine" == 'gaea' ]; then
    module use /ncrc/proj/epic/spack-stack/c6/spack-stack-1.6.0/envs/gsi-addon/install/modulefiles/Core
    module load stack-intel/2023.2.0
    module load stack-cray-mpich/8.1.29
+   #module load cray-mpich/8.1.28
    module load parallelio
-   module load crtm/2.4.0
+   module load crtm/2.4.0.1
    module load gsi-ncdiag
    module load grib-util
-   module load awscli-v2
    module load bufr/11.7.0
    module load python
    module load py-netcdf4
    module list
+   export LD_LIBRARY_PATH="/opt/intel/oneapi/mkl/2022.1.0/lib/intel64:${LD_LIBRARY_PATH}"
    export HDF5_DISABLE_VERSION_CHECK=1
    export WGRIB=`which wgrib`
 else
-   echo "machine must be 'hera', 'orion', 'hercules' or 'gaea' got $machine"
+   echo "machine must be 'hera', 'orion', 'hercules' or 'gaeac5'/'gaeac6' got $machine"
    exit 1
 fi
 export datapath="${datadir}/${exptname}"
@@ -452,7 +475,20 @@ elif [ "$machine" == 'orion' ] || [ $machine == "hercules" ]; then
    export enkfbin=${execdir}/global_enkf
    export gsiexec=${execdir}/global_gsi
    export CHGRESEXEC=${execdir}/enkf_chgres_recenter_nc.x
-elif [ "$machine" == 'gaea' ]; then
+elif [ "$machine" == 'gaeac5' ]; then
+   export fv3gfspath=/gpfs/f5/nggps_psd/proj-shared/Jeffrey.S.Whitaker/fix_NEW
+   export FIXDIR=/gpfs/f5/epic/world-shared/UFS-WM_RT/NEMSfv3gfs/input-data-20240501
+   export FIXDIR_gcyc=${fv3gfspath}
+   export FIXFV3=${fv3gfspath}/fix_fv3_gmted2010
+   export FIXGLOBAL=${fv3gfspath}/fix_am
+   export gsipath=/gpfs/f5/nggps_psd/proj-shared/Jeffrey.S.Whitaker/GSI
+   export fixgsi=${gsipath}/fix
+   export fixcrtm=$CRTM_FIX
+   export execdir=${enkfscripts}/exec_${machine}
+   export enkfbin=${execdir}/global_enkf
+   export gsiexec=${execdir}/global_gsi
+   export CHGRESEXEC=${execdir}/enkf_chgres_recenter_nc.x
+elif [ "$machine" == 'gaeac6' ]; then
    export fv3gfspath=/gpfs/f6/drsa-precip4/proj-shared/Jeffrey.S.Whitaker/fix_NEW
    export FIXDIR=/gpfs/f6/drsa-precip4/proj-shared/Jeffrey.S.Whitaker/input-data-20240501
    export FIXDIR_gcyc=${fv3gfspath}
