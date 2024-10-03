@@ -2,7 +2,7 @@
 ##SBATCH -q urgent
 ##SBATCH -q debug
 #SBATCH --cluster=c5
-#SBATCH -t 01:00:00
+#SBATCH -t 02:30:00
 #SBATCH -A nggps_psd 
 #SBATCH -N 20    
 #SBATCH -J C192_hybcov_6hourly
