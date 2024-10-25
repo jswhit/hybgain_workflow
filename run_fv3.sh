@@ -207,7 +207,7 @@ else
 fi
 
 # setup model namelist parameters
-#skip_iau="true"
+skip_iau="false"
 if [ "$cold_start" == "true" ] || [ $skip_iau == "true" ] ; then
    # cold start from chgres'd GFS analyes
    stochini=F
