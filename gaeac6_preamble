@@ -31,14 +31,14 @@ elif [ $NODES -eq 20 ]; then
 elif [ $NODES -eq 40 ]; then
   # 40 nodes, 8 threads
   export control_threads=8
-  export control_proc=3840
+  export control_proc=7680
   export write_groups_ctl=4 # write groups for control forecast.
   export write_tasks_ctl=24
   export layout_ctl="12,12" # layout_x,layout_y (total # mpi tasks = $layout_x*$layout_y*6=($fg_proc/$fg_threads) - $write_tasks*$write_groups)
 elif [ $NODES -eq 80 ]; then
   # 80 nodes, 16 threads
   export control_threads=16
-  export control_proc=3840
+  export control_proc=15360
   export write_groups_ctl=4 # write groups for control forecast.
   export write_tasks_ctl=24
   export layout_ctl="12,12" # layout_x,layout_y (total # mpi tasks = $layout_x*$layout_y*6=($fg_proc/$fg_threads) - $write_tasks*$write_groups)
