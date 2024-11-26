@@ -34,6 +34,8 @@ export analdatep1m3=`${incdate} $analdate $FHOFFSET`
 export hrp1=`echo $analdatep1 | cut -c9-10`
 export hrm1=`echo $analdatem1 | cut -c9-10`
 
+export obdate=`python findobdate.py $analdate`
+
 # if $REALTIME == "YES", use OZINFO,CONVINFO,SATINFO set in config.sh
 if [ "$REALTIME" == "NO" ]; then
 
@@ -461,6 +463,32 @@ if [ $nanals2 -gt 0 ] && [ $run_gsiobserver -ne 0 ] && [ -s $datapath2/sfg2_${an
 fi
 
 fi # skip to here if fg_only = true
+
+if [ $FHCYC -gt 0 ]; then
+   if [ $hr = "00" ] || [ $hr = "06" ] || [ $hr = "12" ] || [ $hr = "18" ]; then
+    echo "gcycle will be run with FHCYC=$FHCYC"
+   else
+    export FHCYC=0
+    echo "don't run gcycle"
+   fi
+fi
+
+if [ $ANALINC -eq 2 ]; then
+   # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
+   # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
+   if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "22" ] ; then
+     if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
+        export nanals2=-1
+        echo "no longer forecast extension"
+     else
+        export nanals2=80
+        echo "will run $nanals2 members out to hour $FHMAX_LONGER"
+     fi
+   else
+     export nanals2=-1
+     echo "no longer forecast extension"
+   fi
+fi
 
 if [ $replay_controlfcst == 'true' ]; then
     echo "$analdate run high-res control first guess `date`"

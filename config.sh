@@ -24,7 +24,7 @@ export beta=1000 # percentage of enkf increment (*10)
 # in this case, to recenter around EnVar analysis set recenter_control_wgt=100
 export recenter_control_wgt=100
 export recenter_ensmean_wgt=`expr 100 - $recenter_control_wgt`
-export exptname="C${RES}_hybcov_6hourly_iau"
+export exptname="C${RES}_hybcov_2hourly_iau"
 # for 'passive' or 'replay' cycling of control fcst 
 export replay_controlfcst='false'
 export enkfonly='false' # pure EnKF
@@ -333,31 +333,39 @@ else
    echo "model parameters for control resolution C$RES_CTL not set"
    exit 1
 fi
-export FHCYC=6 # run global_cycle instead of gcycle inside model
+export FHCYC=$ANALINC # run global_cycle instead of gcycle inside model
 
 # analysis is done at ensemble resolution
 export LONA=$LONB
 export LATA=$LATB      
 
-export ANALINC=6
+export ANALINC=2
 export FRAC_GRID=.false.
 
-export FHMIN=3
-export FHMAX=9
-export FHOUT=1
-export RESTART_FREQ=3
-export FRAC_GRID=.false.
+if [ $ANALINC -eq 6 ]; then
+   export FHMIN=3
+   export FHMAX=6
+   export FHOUT=3
+   export RESTART_FREQ=3
+   export iaufhrs=3,6,9
+   export iau_delthrs="6" # iau_delthrs < 0 turns IAU off
+elif [ $ANALINC -eq 2 ]; then
+   export FHMIN=1
+   export FHMAX=3
+   export FHOUT=1
+   export RESTART_FREQ=1
+   export iaufhrs=1,2,3
+   export iau_delthrs="2" # iau_delthrs < 0 turns IAU off
+fi
+
 FHMAXP1=`expr $FHMAX + 1`
 # if FHMAX_LONGER divisible by 6, only the last output time saved.
 # if not divisible by 6, all times in 6-h window at the end of forecast saved
 # so GSI observer can be run.
-export FHMAX_LONGER=15
+export FHMAX_LONGER=9
 export enkfstatefhrs=`python -c "from __future__ import print_function; print(list(range(${FHMIN},${FHMAXP1},${FHOUT})))" | cut -f2 -d"[" | cut -f1 -d"]"`
-# IAU on
-export iaufhrs="3,6,9"
-export iau_delthrs="6" # iau_delthrs < 0 turns IAU off
 # IAU off
-#export iaufhrs="6"
+#export iaufhrs=$ANALINC
 #export iau_delthrs=-1
 # parameters to control tapering of analysis ens perts at top of model
 export ak_bot=0
