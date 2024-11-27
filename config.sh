@@ -167,6 +167,7 @@ elif [ "$machine" == 'gaeac6' ]; then
    export datadir=${basedir}
    export hsidir="/ESRL/BMC/gsienkf/2year/whitaker/gaea/${exptname}"
    export obs_datapath=/gpfs/f6/ira-da/proj-shared/Jeffrey.S.Whitaker/dumps
+   export sstice_datapath=/gpfs/f6/drsa-precip4/world-shared/${USER}/era5sstice
    module use /ncrc/proj/epic/spack-stack/c6/spack-stack-1.6.0/envs/gsi-addon/install/modulefiles/Core
    module load stack-intel/2023.2.0
    module load stack-cray-mpich/8.1.29
@@ -333,7 +334,6 @@ else
    echo "model parameters for control resolution C$RES_CTL not set"
    exit 1
 fi
-export FHCYC=$ANALINC # run global_cycle instead of gcycle inside model
 
 # analysis is done at ensemble resolution
 export LONA=$LONB
@@ -341,6 +341,7 @@ export LATA=$LATB
 
 export ANALINC=2
 export FRAC_GRID=.false.
+export FHCYC=$ANALINC
 
 if [ $ANALINC -eq 6 ]; then
    export FHMIN=3
@@ -448,7 +449,7 @@ fi
 
 export nanals=80                                                    
 # if nanals2>0, extend nanals2 members out to FHMAX + ANALINC (one extra assim window)
-export nanals2=-1 # longer extension. Set to -1 to disable 
+export nanals2=80 # longer extension. Set to -1 to disable 
 #export nanals2=$NODES
 #export nanals2=$nanals
 export nitermax=1 # number of retries

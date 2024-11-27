@@ -855,6 +855,12 @@ cat fort.2* > $savdir/gsistats.${adate}_${charnanal2}
 #ls -l
 if [[ "$HXONLY" = "NO" ]]; then
    if [ -s ./siganl ] && [ -s ./satbias_out ]; then
+      if [ -s ./siga01 ]; then
+         $nmv siga01          $SIGANL01
+      fi
+      if [ -s ./siga02 ]; then
+         $nmv siga02          $SIGANL02
+      fi
       if [ -s ./siga03 ]; then
          $nmv siga03          $SIGANL03
       fi

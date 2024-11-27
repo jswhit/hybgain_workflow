@@ -432,26 +432,63 @@ if [ $replay_controlfcst == 'true' ] && [ $replay_run_observer == "true" ]; then
    fi
 fi
 
-# run gsi observer on ensemble mean forecast extension
-run_gsiobserver=`python -c "from __future__ import print_function; print($FHMAX_LONGER % 6)"`
-if [ $nanals2 -gt 0 ] && [ $run_gsiobserver -ne 0 ] && [ -s $datapath2/sfg2_${analdate}_fhr${FHMAX_LONGER}_ensmean ]; then
-   # symlink ensmean files (fhr12_ensmean --> fhr06_ensmean2, etc)
-   fh=`expr $FHMAX_LONGER - $ANALINC`
-   nhr=3
-   while [ $fh -le $FHMAX_LONGER ]; do
-     fhr=`printf %02i $fh`
-     fhr2=`printf %02i $nhr`
-     /bin/ln -fs ${datapath2}/sfg2_${analdate}_fhr${fhr}_ensmean ${datapath2}/sfg_${analdate}_fhr${fhr2}_ensmean2
-     /bin/ln -fs ${datapath2}/bfg2_${analdate}_fhr${fhr}_ensmean ${datapath2}/bfg_${analdate}_fhr${fhr2}_ensmean2
-     fh=$((fh+FHOUT))
-     nhr=$((nhr+FHOUT))
-   done
-   export charnanal='ensmean2' 
+## run gsi observer on ensemble mean forecast extension
+#run_gsiobserver=`python -c "from __future__ import print_function; print($FHMAX_LONGER % 6)"`
+#if [ $nanals2 -gt 0 ] && [ $run_gsiobserver -ne 0 ] && [ -s $datapath2/sfg2_${analdate}_fhr${FHMAX_LONGER}_ensmean ]; then
+#   # symlink ensmean files (fhr12_ensmean --> fhr06_ensmean2, etc)
+#   fh=`expr $FHMAX_LONGER - $ANALINC`
+#   nhr=3
+#   while [ $fh -le $FHMAX_LONGER ]; do
+#     fhr=`printf %02i $fh`
+#     fhr2=`printf %02i $nhr`
+#     /bin/ln -fs ${datapath2}/sfg2_${analdate}_fhr${fhr}_ensmean ${datapath2}/sfg_${analdate}_fhr${fhr2}_ensmean2
+#     /bin/ln -fs ${datapath2}/bfg2_${analdate}_fhr${fhr}_ensmean ${datapath2}/bfg_${analdate}_fhr${fhr2}_ensmean2
+#     fh=$((fh+FHOUT))
+#     nhr=$((nhr+FHOUT))
+#   done
+#   export charnanal='ensmean2' 
+#   export charnanal2='ensmean2' 
+#   export lobsdiag_forenkf='.false.'
+#   export skipcat="false"
+#   echo "$analdate run gsi observer with `printenv | grep charnanal` `date`"
+#   sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver.out 2>&1
+#   # once observer has completed, check log files.
+#   gsi_done=`cat ${current_logdir}/run_gsi_observer.log`
+#   if [ $gsi_done == 'yes' ]; then
+#     echo "$analdate gsi observer completed successfully `date`"
+#   else
+#     echo "$analdate gsi observer did not complete successfully, exiting `date`"
+#     exit 1
+#   fi
+#fi
+#
+# run gsi observer on forecast extension
+if [ -s $datapath2/sfg2_${analdate}_fhr06_ensmean ]; then
+   export charnanal='ensmean' 
    export charnanal2='ensmean2' 
    export lobsdiag_forenkf='.false.'
    export skipcat="false"
+   FHMIN_SAVE=$FHMIN
+   FHMAX_SAVE=$FHMAX
+   ANALINC_SAVE=$ANALINC
+   CONVINFO_SAVE=$CONVINFAO
+   export FHMIN=3
+   export FHMAX=9
+   export ANALINC=6
+   #export CONVINFO=${fixgsi}/gfsv16_historical/global_convinfo.txt.2021052012
+   export ATMPREFIX='sfg2'
+   export SFCPREFIX='bfg2'
+   analdatem1_save=$analdatem1
+   datapathm1_save=$datapathm1
+   RUN_save=$RUN
+   # use bias correction from analysis 4 hours ago (fcst was initialized 3 hours ago)
+   export analdatem1=`${incdate} $analdate -4`
+   export hrm1=`echo $analdatem1 | cut -c9-10`
+   export datapathm1="${datapath}/${analdatem1}/"
+   export PREINPm1="gdas.t${hrm1}z."
+   export RUN=gdas
    echo "$analdate run gsi observer with `printenv | grep charnanal` `date`"
-   sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver.out 2>&1
+   sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver2.out 2>&1
    # once observer has completed, check log files.
    gsi_done=`cat ${current_logdir}/run_gsi_observer.log`
    if [ $gsi_done == 'yes' ]; then
@@ -460,6 +497,29 @@ if [ $nanals2 -gt 0 ] && [ $run_gsiobserver -ne 0 ] && [ -s $datapath2/sfg2_${an
      echo "$analdate gsi observer did not complete successfully, exiting `date`"
      exit 1
    fi
+   if [ $replay_controlfcst == 'true' ] && [ $replay_run_observer == "true" ]; then
+      export charnanal='control'
+      export charnanal2='control2'
+      echo "$analdate run gsi observer with `printenv | grep charnanal` `date`"
+      sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver2c.out 2>&1
+      # once observer has completed, check log files.
+      gsi_done=`cat ${current_logdir}/run_gsi_observer.log`
+      if [ $gsi_done == 'yes' ]; then
+        echo "$analdate gsi observer completed successfully `date`"
+      else
+        echo "$analdate gsi observer did not complete successfully, exiting `date`"
+        exit 1
+      fi
+   fi
+   export FHMIN=$FHMIN_SAVE
+   export FHMAX=$FHMAX_SAVE
+   export ANALINC=$ANALINC_SAVE
+   export CONVINFO=$CONVINFO_SAVE
+   export analdatem1=$analdatem1_save
+   export datapathm1=$datapathm1_save
+   export RUN=$RUN_save
+   unset ATMPREFIX
+   unset SFCPREFIX
 fi
 
 fi # skip to here if fg_only = true
@@ -473,20 +533,16 @@ if [ $FHCYC -gt 0 ]; then
    fi
 fi
 
-if [ $ANALINC -eq 2 ]; then
+if [ $ANALINC -eq 2 ] && [ $nanals2 -gt 0 ]; then
    # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
    # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
-   if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "22" ] ; then
+   if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "20" ] ; then
      if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
         export nanals2=-1
         echo "no longer forecast extension"
      else
-        export nanals2=80
         echo "will run $nanals2 members out to hour $FHMAX_LONGER"
      fi
-   else
-     export nanals2=-1
-     echo "no longer forecast extension"
    fi
 fi
 
