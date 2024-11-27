@@ -5,9 +5,9 @@
 #SBATCH -t 06:00:00
 #SBATCH -A ira-da    
 #SBATCH -N 80    
-#SBATCH -J C384_hybcov_6hourly
-#SBATCH -e C384_hybcov_6hourly.err
-#SBATCH -o C384_hybcov_6hourly.out
+#SBATCH -J C384_hybcov_2hourly
+#SBATCH -e C384_hybcov_2hourly.err
+#SBATCH -o C384_hybcov_2hourly.out
 
 export NODES=$SLURM_NNODES
 export corespernode=$SLURM_CPUS_ON_NODE
