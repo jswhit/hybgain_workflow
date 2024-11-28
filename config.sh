@@ -347,23 +347,29 @@ if [ $ANALINC -eq 6 ]; then
    export FHMIN=3
    export FHMAX=6
    export FHOUT=3
-   export RESTART_FREQ=3
    export iaufhrs=3,6,9
    export iau_delthrs="6" # iau_delthrs < 0 turns IAU off
+   export FHMAX_LONGER=15
 elif [ $ANALINC -eq 2 ]; then
    export FHMIN=1
    export FHMAX=3
    export FHOUT=1
-   export RESTART_FREQ=1
    export iaufhrs=1,2,3
    export iau_delthrs="2" # iau_delthrs < 0 turns IAU off
+   export FHMAX_LONGER=7
+elif [ $ANALINC -eq 1 ]; then
+   export FHMIN=1
+   export FHMAX=1
+   export FHOUT=1
+   export iaufhrs=1
+   export iau_delthrs="1" # iau_delthrs < 0 turns IAU off
+   export FHMAX_LONGER=6
 fi
 
 FHMAXP1=`expr $FHMAX + 1`
 # if FHMAX_LONGER divisible by 6, only the last output time saved.
 # if not divisible by 6, all times in 6-h window at the end of forecast saved
 # so GSI observer can be run.
-export FHMAX_LONGER=9
 export enkfstatefhrs=`python -c "from __future__ import print_function; print(list(range(${FHMIN},${FHMAXP1},${FHOUT})))" | cut -f2 -d"[" | cut -f1 -d"]"`
 # IAU off
 #export iaufhrs=$ANALINC
@@ -449,6 +455,7 @@ fi
 
 export nanals=80                                                    
 # if nanals2>0, extend nanals2 members out to FHMAX + ANALINC (one extra assim window)
+# export nanals2=-1
 export nanals2=80 # longer extension. Set to -1 to disable 
 #export nanals2=$NODES
 #export nanals2=$nanals
@@ -456,6 +463,7 @@ export nitermax=1 # number of retries
 export enkfscripts="${basedir}/scripts/${exptname}"
 export homedir=$enkfscripts
 export incdate="${enkfscripts}/incdate.sh"
+export incdate2="${scriptsdir}/incdate2.sh"
 
 if [ "$machine" == 'hera' ]; then
    export python=/contrib/anaconda/2.3.0/bin/python

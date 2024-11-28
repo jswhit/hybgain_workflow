@@ -23,13 +23,21 @@ export mon=`echo $analdate | cut -c5-6`
 export day=`echo $analdate | cut -c7-8`
 export hr=`echo $analdate | cut -c9-10`
 # previous analysis time.
-export FHOFFSET=`expr $ANALINC \/ 2`
+if [ $ANALINC -eq 1 ]; then
+   export FHOFFSET=0.5
+else
+   export FHOFFSET=`expr $ANALINC \/ 2`
+fi
 export analdatem1=`${incdate} $analdate -$ANALINC`
 # next analysis time.
 export analdatep1=`${incdate} $analdate $ANALINC`
-# beginning of current assimilation window
-export analdatem3=`${incdate} $analdate -$FHOFFSET`
-# beginning of next assimilation window
+if [ $ANALINC -eq 1 ]; then
+   export analdatep1m3=`${incdate2} ${analdate}00 30`
+   export analdatem3=`${incdate2} $analdate -30`
+else
+   export analdatep1m3=`${incdate} $analdate $FHOFFSET`
+   export analdatem3=`${incdate} $analdate -$FHOFFSET`
+fi
 export analdatep1m3=`${incdate} $analdate $FHOFFSET`
 export hrp1=`echo $analdatep1 | cut -c9-10`
 export hrm1=`echo $analdatem1 | cut -c9-10`
@@ -191,14 +199,6 @@ mkdir -p ${current_logdir}
 export PREINP="${RUN}.t${hr}z."
 export PREINP1="${RUN}.t${hrp1}z."
 export PREINPm1="${RUN}.t${hrm1}z."
-
-# if nanals2>0, extend nanals2 members out to FHMAX_LONGER
-if [ $nanals2 -gt 0 ] && [ $cold_start != "true" ]; then
-  echo "will run $nanals2 members out to hour $FHMAX_LONGER"
-else
-  export nanals2=-1
-  echo "no longer forecast extension"
-fi
 
 if [ $fg_only ==  'false' ]; then
 
@@ -463,7 +463,7 @@ fi
 #fi
 #
 # run gsi observer on forecast extension
-if [ -s $datapath2/sfg2_${analdate}_fhr06_ensmean ]; then
+if [ $ANALINC -eq 2 ] && [ -s $datapath2/sfg2_${analdate}_fhr06_ensmean ]; then
    export charnanal='ensmean' 
    export charnanal2='ensmean2' 
    export lobsdiag_forenkf='.false.'
@@ -475,7 +475,7 @@ if [ -s $datapath2/sfg2_${analdate}_fhr06_ensmean ]; then
    export FHMIN=3
    export FHMAX=9
    export ANALINC=6
-   #export CONVINFO=${fixgsi}/gfsv16_historical/global_convinfo.txt.2021052012
+   export CONVINFO=${enkfscripts}/global_convinfo.txt6
    export ATMPREFIX='sfg2'
    export SFCPREFIX='bfg2'
    analdatem1_save=$analdatem1
@@ -533,17 +533,31 @@ if [ $FHCYC -gt 0 ]; then
    fi
 fi
 
-if [ $ANALINC -eq 2 ] && [ $nanals2 -gt 0 ]; then
-   # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
-   # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
-   if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "20" ] ; then
+if [ $nanals2 -gt 0 ]; then
+   if [ $ANALINC -eq 6 ]; then
      if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
         export nanals2=-1
         echo "no longer forecast extension"
      else
         echo "will run $nanals2 members out to hour $FHMAX_LONGER"
      fi
+   elif [ $ANALINC -eq 2 ]; then
+      # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
+      # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
+      if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "20" ] ; then
+        if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
+           export nanals2=-1
+           echo "no longer forecast extension"
+        else
+           echo "will run $nanals2 members out to hour $FHMAX_LONGER"
+        fi
+      else
+        export nanals2=-1
+        echo "no longer forecast extension"
+      fi
    fi
+else
+   echo "no longer forecast extension"
 fi
 
 if [ $replay_controlfcst == 'true' ]; then
