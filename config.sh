@@ -4,8 +4,8 @@ echo "running on $machine using $NODES nodes and $cores CORES"
 
 export ndates_job=1 # number of DA cycles to run in one job submission
 # resolution of control and ensmemble.
-export RES=384 
-export RES_CTL=384
+export RES=192 
+export RES_CTL=192
 # Penney 2014 Hybrid Gain algorithm with beta_1=1.0
 # beta_2=alpha and beta_3=0 in eqn 6 
 # (https://journals.ametsoc.org/doi/10.1175/MWR-D-13-00131.1)
@@ -24,7 +24,7 @@ export beta=1000 # percentage of enkf increment (*10)
 # in this case, to recenter around EnVar analysis set recenter_control_wgt=100
 export recenter_control_wgt=100
 export recenter_ensmean_wgt=`expr 100 - $recenter_control_wgt`
-export exptname="C${RES}_hybcov_hourly_iau"
+export exptname="C${RES}_hybcov_6hourly_iau"
 # for 'passive' or 'replay' cycling of control fcst 
 export replay_controlfcst='false'
 export enkfonly='false' # pure EnKF
@@ -339,14 +339,14 @@ fi
 export LONA=$LONB
 export LATA=$LATB      
 
-export ANALINC=1
+export ANALINC=6
 export FRAC_GRID=.false.
 export FHCYC=$ANALINC
 
 if [ $ANALINC -eq 6 ]; then
    export FHMIN=3
-   export FHMAX=6
-   export FHOUT=3
+   export FHMAX=9
+   export FHOUT=1
    export iaufhrs=3,6,9
    export iau_delthrs="6" # iau_delthrs < 0 turns IAU off
    export FHMAX_LONGER=15
