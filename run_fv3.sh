@@ -600,7 +600,11 @@ if [ $longer_fcst = "YES" ] ; then
    mkdir -p $datapath/$analdatep2
    fh=$fh1
    while [ $fh -le $fh2 ]; do
-     fhx=`expr $fh + $ANALINC` 
+     if [ $ANALINC -ne 6 ]; then
+        fhx=`expr $fh + $ANALINC` 
+     else
+        fhx=$fh
+     fi
      charfhr="fhr"`printf %02i $fhx`
      charfhr2="f"`printf %03i $fh`
      /bin/mv -f dyn${charfhr2}.nc ${datapath}/${analdatep2}/sfg2_${analdatep2}_${charfhr}_${charnanal}
