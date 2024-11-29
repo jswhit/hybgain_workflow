@@ -153,8 +153,15 @@ elif [ $ANALINC -eq 2 ]; then
    thin4d=.true.
    time_window_max=1
    nhr_assimilation=2
+elif [ $ANALINC -eq 1 ]; then
+   min_offset=30
+   l4densvar=.false.
+   thin4d=.false.
+   lwrite4danl=.false.
+   time_window_max=0.5
+   nhr_assimilation=1
 else
-   echo "ANALINC must be 2 or 6"
+   echo "ANALINC must be 1,2 or 6"
 fi
 SETUP="verbose=.true.,reduce_diag=.true.,lwrite_peakwt=.true.,lread_obs_save=$lread_obs_save,lread_obs_skip=$lread_obs_skip,l4densvar=$l4densvar,ens_nstarthr=$FHMIN,iwrtinc=-1,nhr_assimilation=$nhr_assimilation,nhr_obsbin=$nhr_obsbin,use_prepb_satwnd=$use_prepb_satwnd,lwrite4danl=$lwrite4danl,passive_bc=.true.,newpc4pred=.true.,adp_anglebc=.true.,angord=4,use_edges=.false.,diag_precon=.true.,step_start=1.e-3,emiss_bc=.true.,lobsdiag_forenkf=$lobsdiag_forenkf,lwrite_predterms=.true.,thin4d=$thin4d,lupdqc=$lupdqc,min_offset=$min_offset,offtime_data=.true.,nhr_cycle=$ANALINC,lwrite_sfcanl=.false.,nhr_anal=$iaufhrs"
 

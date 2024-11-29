@@ -24,7 +24,7 @@ export beta=1000 # percentage of enkf increment (*10)
 # in this case, to recenter around EnVar analysis set recenter_control_wgt=100
 export recenter_control_wgt=100
 export recenter_ensmean_wgt=`expr 100 - $recenter_control_wgt`
-export exptname="C${RES}_hybcov_2hourly_iau"
+export exptname="C${RES}_hybcov_hourly_iau"
 # for 'passive' or 'replay' cycling of control fcst 
 export replay_controlfcst='false'
 export enkfonly='false' # pure EnKF
@@ -339,7 +339,7 @@ fi
 export LONA=$LONB
 export LATA=$LATB      
 
-export ANALINC=2
+export ANALINC=1
 export FRAC_GRID=.false.
 export FHCYC=$ANALINC
 
@@ -463,7 +463,7 @@ export nitermax=1 # number of retries
 export enkfscripts="${basedir}/scripts/${exptname}"
 export homedir=$enkfscripts
 export incdate="${enkfscripts}/incdate.sh"
-export incdate2="${scriptsdir}/incdate2.sh"
+export incdate2="${enkfscripts}/incdate2.sh"
 
 if [ "$machine" == 'hera' ]; then
    export python=/contrib/anaconda/2.3.0/bin/python
@@ -544,7 +544,7 @@ export HYBENSINFO=${fixgsi}/global_hybens_info.l${LEVS}.txt # only used if readi
 #export SATINFO=${fixgsi}/global_satinfo.txt
 export OZINFO=${fixgsi}/gfsv16_historical/global_ozinfo.txt.2020011806
 #export CONVINFO=${enkfscripts}/global_convinfo.txt_nothin # modified twindow (probably not needed), modify gross err check?
-export CONVINFO=${enkfscripts}/global_convinfo.txt # modified twindow (probably not needed), modify gross err check?
+export CONVINFO="${enkfscripts}/global_convinfo.txt${ANALINC}" # modified twindow (probably not needed), modify gross err check?
 #export CONVINFO=${fixgsi}/global_convinfo.txt_nothin # modified twindow (probably not needed), modify gross err check?
 export SATINFO=${fixgsi}/gfsv16_historical/global_satinfo.txt.2020022012
 export NLAT=$((${LATA}+2))
