@@ -794,8 +794,17 @@ SFCG09=${SFCGG09:-$datges/${SFCPREFIX}_${adate}_fhr03_${charnanal}}
 $nln $SFCG03               ./sfcf01
 $nln $SFCG06               ./sfcf02
 $nln $SFCG09               ./sfcf03
+
+elif [ $ANALINC -eq 1 ]; then
+SIGG06=${SIGG01:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
+$nln $SIGG06               ./sigf01
+#$nln ./sigf01 ./sigf02
+SFCG06=${SIGG01:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
+$nln $SFCG06               ./sfcf01
+#$nln ./sfcf01 ./sfcf02
 else
-echo "ANALINC must be 6 or 2"
+echo "ANALINC must be 1,2 or 6"
+
 fi
 
 if [[ $beta_s0 < 0.999 ]]; then
