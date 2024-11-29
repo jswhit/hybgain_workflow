@@ -61,10 +61,12 @@ if [ -z $biascorrdir ]; then # cycled bias correction files
     export GBIASAIR=${datapathm1}/${PREINPm1}abias_air
     export ABIAS=${datapath2}/${PREINP}abias
 else # externally specified bias correction files.
-    export GBIAS=${biascorrdir}/${analdate}//${PREINP}abias
-    export GBIAS_PC=${biascorrdir}/${analdate}//${PREINP}abias_pc
-    export GBIASAIR=${biascorrdir}/${analdate}//${PREINP}abias_air
-    export ABIAS=${biascorrdir}/${analdate}//${PREINP}abias
+    biasdate=$obdate
+    hhbias=`echo $biasdate | cut -c9-10`
+    export GBIAS=${biascorrdir}/${biasdate}/gdas.t${hhbias}z.abias
+    export GBIAS_PC=${biascorrdir}/${biasdate}//gdas.t${hhbias}z.abias_pc
+    export GBIASAIR=${biascorrdir}/${biasdate}//gdas.t${hhbias}z.abias_air
+    export ABIAS=${biascorrdir}/${biasdate}//gdas.t${hhbias}z.abias
 fi
 export GSATANG=$fixgsi/global_satangbias.txt # not used, but needs to exist
 

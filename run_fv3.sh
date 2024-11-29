@@ -600,8 +600,10 @@ if [ $longer_fcst = "YES" ] ; then
    mkdir -p $datapath/$analdatep2
    fh=$fh1
    while [ $fh -le $fh2 ]; do
-     if [ $ANALINC -ne 6 ]; then
-        fhx=`expr $fh + $ANALINC` 
+     if [ $ANALINC -eq 1 ]; then
+        fhx=`expr $fh + 3`
+     elif [ $ANALINC -eq 2 ]; then
+        fhx=`expr $fh + 2`
      else
         fhx=$fh
      fi
