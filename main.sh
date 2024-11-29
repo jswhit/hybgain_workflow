@@ -33,12 +33,11 @@ export analdatem1=`${incdate} $analdate -$ANALINC`
 export analdatep1=`${incdate} $analdate $ANALINC`
 if [ $ANALINC -eq 1 ]; then
    export analdatep1m3=`${incdate2} ${analdate}00 30`
-   export analdatem3=`${incdate2} $analdate -30`
+   export analdatem3=`${incdate2} ${analdate}00 -30`
 else
    export analdatep1m3=`${incdate} $analdate $FHOFFSET`
    export analdatem3=`${incdate} $analdate -$FHOFFSET`
 fi
-export analdatep1m3=`${incdate} $analdate $FHOFFSET`
 export hrp1=`echo $analdatep1 | cut -c9-10`
 export hrm1=`echo $analdatem1 | cut -c9-10`
 
@@ -545,6 +544,20 @@ if [ $nanals2 -gt 0 ]; then
       # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
       # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
       if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "20" ] ; then
+        if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
+           export nanals2=-1
+           echo "no longer forecast extension"
+        else
+           echo "will run $nanals2 members out to hour $FHMAX_LONGER"
+        fi
+      else
+        export nanals2=-1
+        echo "no longer forecast extension"
+      fi
+   elif [ $ANALINC -eq 1 ]; then
+      # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
+      # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
+      if [ $hr = "03" ] || [ $hr = "09" ] || [ $hr = "15" ] || [ $hr = "21" ] ; then
         if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
            export nanals2=-1
            echo "no longer forecast extension"
