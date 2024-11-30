@@ -782,25 +782,25 @@ $nln $SIGG08               ./sigf08
 fi
 
 elif [ $ANALINC -eq 2 ]; then
-SIGG01=${SIGG01:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
-SIGG02=${SIGG02:-$datges/${ATMPREFIX}_${adate}_fhr02_${charnanal}}
-SIGG03=${SIGG03:-$datges/${ATMPREFIX}_${adate}_fhr03_${charnanal}}
-$nln $SIGG01               ./sigf01
-$nln $SIGG02               ./sigf02
-$nln $SIGG03               ./sigf03
-SFCG01=${SFCGG01:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
-SFCG02=${SFCGG02:-$datges/${SFCPREFIX}_${adate}_fhr02_${charnanal}}
-SFCG03=${SFCGG03:-$datges/${SFCPREFIX}_${adate}_fhr03_${charnanal}}
-$nln $SFCG01               ./sfcf01
-$nln $SFCG02               ./sfcf02
-$nln $SFCG03               ./sfcf03
+SIGG03=${SIGG03:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
+SIGG06=${SIGG06:-$datges/${ATMPREFIX}_${adate}_fhr02_${charnanal}}
+SIGG09=${SIGG09:-$datges/${ATMPREFIX}_${adate}_fhr03_${charnanal}}
+$nln $SIGG03               ./sigf01
+$nln $SIGG06               ./sigf02
+$nln $SIGG09               ./sigf03
+SFCG03=${SFCGG03:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
+SFCG06=${SFCGG06:-$datges/${SFCPREFIX}_${adate}_fhr02_${charnanal}}
+SFCG09=${SFCGG09:-$datges/${SFCPREFIX}_${adate}_fhr03_${charnanal}}
+$nln $SFCG03               ./sfcf01
+$nln $SFCG06               ./sfcf02
+$nln $SFCG09               ./sfcf03
 
 elif [ $ANALINC -eq 1 ]; then
-SIGG01=${SIGG01:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
-$nln $SIGG01               ./sigf01
+SIGG06=${SIGG06:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
+$nln $SIGG06               ./sigf01
 #$nln ./sigf01 ./sigf02
-SFCG06=${SIGG01:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
-$nln $SFCG01               ./sfcf01
+SFCG06=${SIGG06:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
+$nln $SFCG06               ./sfcf01
 #$nln ./sfcf01 ./sfcf02
 else
 echo "ANALINC must be 1,2 or 6"
