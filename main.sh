@@ -479,10 +479,10 @@ elif [ -s $datapath2/sfg2_${analdate}_fhr06_ensmean ]; then
    RUN_save=$RUN
    export RUN="gdas"
    if [ ! -z $biascorrdir ]; then # non-cycled bias correction files
-      export analdatem1x=${obdate}
-      export hrm1x=`echo $analdatem1x | cut -c9-10`
-      export datapathm1="${datapath}/${analdatem1x}/"
-      export PREINPm1="gdas.t${hrm1x}z."
+      export analdatem1=${obdate}
+      export hrm1=`echo $analdatem1 | cut -c9-10`
+      export datapathm1="${datapath}/${analdatem1}/"
+      export PREINPm1="gdas.t${hrm1}z."
    fi
    echo "$analdate run gsi observer with `printenv | grep charnanal` `date`"
    sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver2.out 2>&1
