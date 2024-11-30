@@ -420,13 +420,13 @@ export timestep_hrs=`python -c "from __future__ import print_function; print($dt
 if [ "${iau_delthrs}" != "-1" ]  && [ "${cold_start}" == "false" ]; then
    FHROT=$FHOFFSET
 else
-   if [ $ANALINC -eq 6 ] && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
+   if ([ $ANALINC -eq 6 ] || [ $ANALINC -eq 2 ]) && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
      FHROT=$FHOFFSET
    else
      FHROT=0
    fi
 fi
-if [ $ANALINC -eq 6 ] && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ] && [ "${iau_delthrs}" != "-1" ]; then
+if ([ $ANALINC -eq 6 ] || [ $ANALINC -eq 2 ]) && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ] && [ "${iau_delthrs}" != "-1" ]; then
    # cold start ICS at end of window, need one timestep restart
    restart_interval=`python -c "from __future__ import print_function; print($FHROT + $timestep_hrs)"`
    output_1st_tstep_rst=".true."
@@ -552,7 +552,7 @@ fi
 export DATOUT=${DATOUT:-$datapathp1}
 # this is a hack to work around the fact that first time step history
 # file is not written if restart file requested at first time step.
-if [ $ANALINC -eq 6 ] && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
+if ([ $ANALINC -eq 6 ] || [ $ANALINC -eq 2 ]) && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
    fh=$FHOFFSET
    fh2=$[$fh+$FHOUT]
    charfhr2="f"`printf %03i $fh2`
