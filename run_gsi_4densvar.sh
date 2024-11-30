@@ -799,7 +799,7 @@ elif [ $ANALINC -eq 1 ]; then
 SIGG06=${SIGG06:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
 $nln $SIGG06               ./sigf01
 #$nln ./sigf01 ./sigf02
-SFCG06=${SIGG06:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
+SFCG06=${SFCG06:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
 $nln $SFCG06               ./sfcf01
 #$nln ./sfcf01 ./sfcf02
 else
