@@ -47,7 +47,7 @@ while [ -s ${datapath}/${analdate}/sfg2_${analdate}_${charfhr}_mem001 ]; do
 #while [ $fh -le $FHMAX_LONGER ]; do
   #charfhr="fhr`printf %02i $fh`"
 
-  if [ -s ${datapath2}/sfg2_${analdate}_${charfhr}_mem001 ]; then
+  #if [ -s ${datapath2}/sfg2_${analdate}_${charfhr}_mem001 ]; then
   if [ $cleanup_ensmean == 'true' ] || ([ $cleanup_ensmean == 'false' ]  && [ ! -s ${datapath}/${analdate}/bfg2_${analdate}_${charfhr}_ensmean ]); then
       echo "running  ${execdir}/getsfcensmeanp.x ${datapath2}/ bfg2_${analdate}_${charfhr}_ensmean bfg2_${analdate}_${charfhr} ${nanals2}"
       /bin/rm -f ${datapath2}/bfg2_${analdate}_${charfhr}_ensmean
@@ -73,10 +73,12 @@ while [ -s ${datapath}/${analdate}/sfg2_${analdate}_${charfhr}_mem001 ]; do
          exit 1
       fi
   fi
-  fi
+  #fi
 
+  echo "increment fh'
   fh=$((fh+FHOUT))
   charfhr="fhr`printf %02i $fh`"
+  echo "$fh $charfhr"
 
 done
 fi

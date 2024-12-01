@@ -595,17 +595,15 @@ done
 if [ $longer_fcst = "YES" ] ; then
    if [ $ANALINC -eq 6 ]; then
      fh1=`expr $FHMAX_LONGER -  6`
-   else
-     fh1=3
+     fhadd=12
+   elif [ $ANALINC -eq 2 ]; then
+     fh1=1
+     fhadd=4
+   elif [ $ANALINC -eq 1 ]; then
+     fh1=0
+     fhadd=3
    fi
    fh2=$FHMAX_LONGER
-   if [ $ANALINC -eq 2 ]; then
-      fhadd=4
-   elif [ $ANALINC -eq 1 ]; then
-      fhadd=3
-   else
-      fhadd=12
-   fi
    analdatep2=`$incdate $analdate $fhadd`
    mkdir -p $datapath/$analdatep2
    fh=$fh1
