@@ -600,7 +600,7 @@ if [ $longer_fcst = "YES" ] ; then
    elif [ $ANALINC -eq 1 ]; then
       fhadd=3
    else
-      fhadd=6
+      fhadd=12
    fi
    analdatep2=`$incdate $analdate $fhadd`
    mkdir -p $datapath/$analdatep2

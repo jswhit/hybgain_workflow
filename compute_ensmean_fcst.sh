@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export OMP_STACKSIZE=1024M
+set -x
 
 cd ${datapath2}
 
@@ -39,9 +40,12 @@ while [ $fh -le $FHMAX ]; do
 done
 
 if [ $nanals2 -gt 0 ]; then
-fh=`expr ${FHMAX_LONGER} - ${ANALINC}`
-while [ $fh -le $FHMAX_LONGER ]; do
-  charfhr="fhr`printf %02i $fh`"
+#fh=`expr ${FHMAX_LONGER} - ${ANALINC}`
+fh=3
+charfhr="fhr`printf %02i $fh`"
+while [ -s ${datapath}/${analdate}/sfg2_${analdate}_${charfhr}_mem001 ]; do
+#while [ $fh -le $FHMAX_LONGER ]; do
+  #charfhr="fhr`printf %02i $fh`"
 
   if [ -s ${datapath2}/sfg2_${analdate}_${charfhr}_mem001 ]; then
   if [ $cleanup_ensmean == 'true' ] || ([ $cleanup_ensmean == 'false' ]  && [ ! -s ${datapath}/${analdate}/bfg2_${analdate}_${charfhr}_ensmean ]); then
@@ -57,8 +61,8 @@ while [ $fh -le $FHMAX_LONGER ]; do
   if [ $cleanup_ensmean == 'true' ] || ([ $cleanup_ensmean == 'false' ]  && [ ! -s ${datapath}/${analdate}/sfg2_${analdate}_${charfhr}_ensmean ]); then
       /bin/rm -f ${datapath2}/sfg2_${analdate}_${charfhr}_ensmean
       echo "running ${execdir}/getsigensmeanp_smooth.x ${datapath2}/ sfg2_${analdate}_${charfhr}_ensmean sfg2_${analdate}_${charfhr} ${nanals2} sfg2_${analdate}_${charfhr}_enssprd"
-      ANALINC2=`expr $ANALINC + $ANALINC`
-      if [ $fh -eq $ANALINC2 ]; then # just save spread at middle of window
+      compute_spread=`python -c "from __future__ import print_function; print($fh % 6)"`
+      if [ $compute_spread -eq 0 ]; then # just save spread at middle of window
          export PGM="${execdir}/getsigensmeanp_smooth.x ${datapath2}/ sfg2_${analdate}_${charfhr}_ensmean sfg2_${analdate}_${charfhr} ${nanals2} sfg2_${analdate}_${charfhr}_enssprd"
       else
          export PGM="${execdir}/getsigensmeanp_smooth.x ${datapath2}/ sfg2_${analdate}_${charfhr}_ensmean sfg2_${analdate}_${charfhr} ${nanals2}"
@@ -72,6 +76,7 @@ while [ $fh -le $FHMAX_LONGER ]; do
   fi
 
   fh=$((fh+FHOUT))
+  charfhr="fhr`printf %02i $fh`"
 
 done
 fi
