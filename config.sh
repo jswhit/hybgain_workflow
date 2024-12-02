@@ -24,7 +24,7 @@ export beta=1000 # percentage of enkf increment (*10)
 # in this case, to recenter around EnVar analysis set recenter_control_wgt=100
 export recenter_control_wgt=100
 export recenter_ensmean_wgt=`expr 100 - $recenter_control_wgt`
-export exptname="C${RES}_hybcov_6hourly_iau"
+export exptname="C${RES}_hybcov_2hourly_iau"
 # for 'passive' or 'replay' cycling of control fcst 
 export replay_controlfcst='false'
 export enkfonly='false' # pure EnKF
@@ -339,7 +339,7 @@ fi
 export LONA=$LONB
 export LATA=$LATB      
 
-export ANALINC=6
+export ANALINC=2
 export FRAC_GRID=.false.
 export FHCYC=$ANALINC
 
@@ -356,14 +356,14 @@ elif [ $ANALINC -eq 2 ]; then
    export FHOUT=1
    export iaufhrs=1,2,3
    export iau_delthrs="2" # iau_delthrs < 0 turns IAU off
-   export FHMAX_LONGER=7
+   export FHMAX_LONGER=13
 elif [ $ANALINC -eq 1 ]; then
    export FHMIN=1
    export FHMAX=1
    export FHOUT=1
    export iaufhrs=1
    export iau_delthrs="1" # iau_delthrs < 0 turns IAU off
-   export FHMAX_LONGER=6
+   export FHMAX_LONGER=12
 fi
 
 FHMAXP1=`expr $FHMAX + 1`
@@ -451,7 +451,7 @@ elif [ $LEVS -eq 127 ]; then
   export s_ens_v=7.7 # 20 levels
 fi
 # use pre-generated bias files.
-#export biascorrdir=${datadir}/C192_hybcov_6hourly_iau
+export biascorrdir=${datadir}/C192_hybcov_6hourly_iau
 
 export nanals=80                                                    
 # if nanals2>0, extend nanals2 members out to FHMAX + ANALINC (one extra assim window)
