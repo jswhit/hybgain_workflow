@@ -41,9 +41,10 @@ done
 
 if [ $nanals2 -gt 0 ]; then
 
-fh=3
-charfhr="fhr`printf %02i $fh`"
-while [ -s ${datapath}/${analdate}/sfg2_${analdate}_${charfhr}_mem001 ]; do
+fhrs=`ls ${datapath}/${analdate}/sfg2_${analdate}*mem001 | awk -F'fhr' '{print $2}' | cut -f1 -d"_"`
+for fhr in $fhrs; do
+
+  charfhr="fhr${fhr}"
 
   if [ $cleanup_ensmean == 'true' ] || ([ $cleanup_ensmean == 'false' ]  && [ ! -s ${datapath}/${analdate}/bfg2_${analdate}_${charfhr}_ensmean ]); then
       echo "running  ${execdir}/getsfcensmeanp.x ${datapath2}/ bfg2_${analdate}_${charfhr}_ensmean bfg2_${analdate}_${charfhr} ${nanals2}"
@@ -71,8 +72,6 @@ while [ -s ${datapath}/${analdate}/sfg2_${analdate}_${charfhr}_mem001 ]; do
       fi
   fi
 
-  fh=$((fh+FHOUT))
-  charfhr="fhr`printf %02i $fh`"
 done
 
 fi
