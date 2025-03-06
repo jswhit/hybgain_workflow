@@ -29,26 +29,32 @@ if [ $save_hpss_full == "true" ]; then
    echo "htar fgens, fgens2"
    /bin/rm -rf gsitmp*
    /bin/rm -rf sanl*mem*
-   cd fgens # fgens has FV3 restart files
-   $htar -cvf ${hsidir}/${analdate}_fgens.tar * &
-   cd ../fgens2 # fgens2 has nemsio files
-   $htar -cvf ${hsidir}/${analdate}_fgens2.tar * &
-   cd ..
-   wait
-   $hsi ls -l ${hsidir}/${analdate}_fgens.tar
+   cd fgens # fgens has FV3 restart files (including increment)
+   /bin/rm -rf mem*/*f77 mem*/PET* mem*/log* 
+   if [ $save_hpss == "true" ]; then
+      $htar -cvf ${hsidir}/${analdate}_fgens.tar * 
+   else
+      tar -cvf ../../${analdate}_fgens.tar *
+   fi
+   #cd ../fgens2 # fgens2 has history files
+   #$htar -cvf ${hsidir}/${analdate}_fgens2.tar * &
+   #cd ..
+   #wait
+   #$hsi ls -l ${hsidir}/${analdate}_fgens.tar
    if [ $? -eq 0 ]; then
       /bin/rm -rf fgens
    else
       echo "htar fgens failed, not deleting data"
       existat=1
    fi
-   $hsi ls -l ${hsidir}/${analdate}_fgens2.tar
-   if [ $? -eq 0 ]; then
-      /bin/rm -rf fgens2
-   else
-      echo "htar fgens2 failed, not deleting data"
-      existat=1
-   fi
+   /bin/rm -f fgens2 # don't archive
+   #$hsi ls -l ${hsidir}/${analdate}_fgens2.tar
+   #if [ $? -eq 0 ]; then
+   #   /bin/rm -rf fgens2
+   #else
+   #   echo "htar fgens2 failed, not deleting data"
+   #   existat=1
+   #fi
 else
    echo 'not saving fgens,fgens2 data to hpss, just clean up...'
    /bin/rm -rf fgens
