@@ -4,8 +4,8 @@ echo "running on $machine using $NODES nodes and $cores CORES"
 
 export ndates_job=1 # number of DA cycles to run in one job submission
 # resolution of control and ensmemble.
-export RES=384 
-export RES_CTL=384
+export RES=192 
+export RES_CTL=192
 # Penney 2014 Hybrid Gain algorithm with beta_1=1.0
 # beta_2=alpha and beta_3=0 in eqn 6 
 # (https://journals.ametsoc.org/doi/10.1175/MWR-D-13-00131.1)
@@ -24,7 +24,7 @@ export beta=1000 # percentage of enkf increment (*10)
 # in this case, to recenter around EnVar analysis set recenter_control_wgt=100
 export recenter_control_wgt=100
 export recenter_ensmean_wgt=`expr 100 - $recenter_control_wgt`
-export exptname="C${RES}_hybcov_6hourly_iau"
+export exptname="C${RES}_hybcov_2hourly_iau"
 # for 'passive' or 'replay' cycling of control fcst 
 export replay_controlfcst='false'
 export enkfonly='false' # pure EnKF
@@ -167,6 +167,7 @@ elif [ "$machine" == 'gaeac6' ]; then
    export datadir=${basedir}
    export hsidir="/ESRL/BMC/gsienkf/2year/whitaker/gaea/${exptname}"
    export obs_datapath=/gpfs/f6/ira-da/proj-shared/Jeffrey.S.Whitaker/dumps
+   export sstice_datapath=/gpfs/f6/drsa-precip4/world-shared/${USER}/era5sstice
    module use /ncrc/proj/epic/spack-stack/c6/spack-stack-1.6.0/envs/gsi-addon/install/modulefiles/Core
    module load stack-intel/2023.2.0
    module load stack-cray-mpich/8.1.29
@@ -192,7 +193,7 @@ export logdir="${datadir}/logs/${exptname}"
 export NOSAT="NO" # if yes, no radiances assimilated
 export NOCONV="NO"
 export NOTLNMC="NO" # no TLNMC in GSI in GSI EnVar
-export NOOUTERLOOP="YES" # no outer loop in GSI EnVar
+export NOOUTERLOOP="NO" # no outer loop in GSI EnVar
 # model NSST parameters contained within nstf_name in FV3 namelist
 # (comment out to get default - no NSST)
 # nstf_name(1) : NST_MODEL (NSST Model) : 0 = OFF, 1 = ON but uncoupled, 2 = ON and coupled
@@ -333,31 +334,45 @@ else
    echo "model parameters for control resolution C$RES_CTL not set"
    exit 1
 fi
-export FHCYC=6 # run global_cycle instead of gcycle inside model
 
 # analysis is done at ensemble resolution
 export LONA=$LONB
 export LATA=$LATB      
 
-export ANALINC=6
+export ANALINC=2
 export FRAC_GRID=.false.
+export FHCYC=$ANALINC
 
-export FHMIN=3
-export FHMAX=9
-export FHOUT=1
-export RESTART_FREQ=3
-export FRAC_GRID=.false.
+if [ $ANALINC -eq 6 ]; then
+   export FHMIN=3
+   export FHMAX=9
+   export FHOUT=1
+   export iaufhrs=3,6,9
+   export iau_delthrs="6" # iau_delthrs < 0 turns IAU off
+   export FHMAX_LONGER=15
+elif [ $ANALINC -eq 2 ]; then
+   export FHMIN=1
+   export FHMAX=3
+   export FHOUT=1
+   export iaufhrs=1,2,3
+   export iau_delthrs="2" # iau_delthrs < 0 turns IAU off
+   export FHMAX_LONGER=13
+elif [ $ANALINC -eq 1 ]; then
+   export FHMIN=1
+   export FHMAX=1
+   export FHOUT=1
+   export iaufhrs=1
+   export iau_delthrs="1" # iau_delthrs < 0 turns IAU off
+   export FHMAX_LONGER=12
+fi
+
 FHMAXP1=`expr $FHMAX + 1`
 # if FHMAX_LONGER divisible by 6, only the last output time saved.
 # if not divisible by 6, all times in 6-h window at the end of forecast saved
 # so GSI observer can be run.
-export FHMAX_LONGER=15
 export enkfstatefhrs=`python -c "from __future__ import print_function; print(list(range(${FHMIN},${FHMAXP1},${FHOUT})))" | cut -f2 -d"[" | cut -f1 -d"]"`
-# IAU on
-export iaufhrs="3,6,9"
-export iau_delthrs="6" # iau_delthrs < 0 turns IAU off
 # IAU off
-#export iaufhrs="6"
+#export iaufhrs=$ANALINC
 #export iau_delthrs=-1
 # parameters to control tapering of analysis ens perts at top of model
 export ak_bot=0
@@ -436,17 +451,19 @@ elif [ $LEVS -eq 127 ]; then
   export s_ens_v=7.7 # 20 levels
 fi
 # use pre-generated bias files.
-#export biascorrdir=${datadir}/C192_hybcov_6hourly_iau
+export biascorrdir=${datadir}/C192_hybcov_6hourly_iau
 
 export nanals=80                                                    
 # if nanals2>0, extend nanals2 members out to FHMAX + ANALINC (one extra assim window)
-export nanals2=-1 # longer extension. Set to -1 to disable 
+# export nanals2=-1
+export nanals2=80 # longer extension. Set to -1 to disable 
 #export nanals2=$NODES
 #export nanals2=$nanals
 export nitermax=1 # number of retries
 export enkfscripts="${basedir}/scripts/${exptname}"
 export homedir=$enkfscripts
 export incdate="${enkfscripts}/incdate.sh"
+export incdate2="${enkfscripts}/incdate2.sh"
 
 if [ "$machine" == 'hera' ]; then
    export python=/contrib/anaconda/2.3.0/bin/python
@@ -527,7 +544,7 @@ export HYBENSINFO=${fixgsi}/global_hybens_info.l${LEVS}.txt # only used if readi
 #export SATINFO=${fixgsi}/global_satinfo.txt
 export OZINFO=${fixgsi}/gfsv16_historical/global_ozinfo.txt.2020011806
 #export CONVINFO=${enkfscripts}/global_convinfo.txt_nothin # modified twindow (probably not needed), modify gross err check?
-export CONVINFO=${enkfscripts}/global_convinfo.txt # modified twindow (probably not needed), modify gross err check?
+export CONVINFO="${enkfscripts}/global_convinfo.txt${ANALINC}" # modified twindow (probably not needed), modify gross err check?
 #export CONVINFO=${fixgsi}/global_convinfo.txt_nothin # modified twindow (probably not needed), modify gross err check?
 export SATINFO=${fixgsi}/gfsv16_historical/global_satinfo.txt.2020022012
 export NLAT=$((${LATA}+2))

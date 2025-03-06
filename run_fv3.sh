@@ -55,6 +55,11 @@ if [ "${iau_delthrs}" != "-1" ] && [ "${cold_start}" == "false" ]; then
    export monnext=`echo $analdatep1m3 |cut -c 5-6`
    export daynext=`echo $analdatep1m3 |cut -c 7-8`
    export hrnext=`echo $analdatep1m3 |cut -c 9-10`
+   if [ $ANALINC -eq 1 ]; then
+      export minnext=`echo $analdatep1m3 |cut -c 11-12`
+   else
+      export minnext='00'
+   fi
 else
    # if no IAU, start date is middle of window
    export year=`echo $analdate |cut -c 1-4`
@@ -70,6 +75,11 @@ else
    export monp3=`echo $analdatep1m3 |cut -c 5-6`
    export dayp3=`echo $analdatep1m3 |cut -c 7-8`
    export hrp3=`echo $analdatep1m3 |cut -c 9-10`
+   if [ $ANALINC -eq 1 ]; then
+      export minp3=`echo $analdatep1m3 |cut -c 11-12`
+   else
+      export minp3='00'
+   fi
    # time for restart file
    if [ "${iau_delthrs}" != "-1" ] ; then
       # beginning of next analysis window
@@ -77,6 +87,7 @@ else
       export monnext=$monp3
       export daynext=$dayp3
       export hrnext=$hrp3
+      export minnext=$minp3
    else
       # end of next analysis window
       export yrnext=`echo $analdatep1 |cut -c 1-4`
@@ -100,7 +111,7 @@ export DIAG_TABLE=${DIAG_TABLE:-$enkfscripts/diag_table}
 /bin/cp -f $enkfscripts/fd_ufs.yaml .
 # insert correct starting time and output interval in diag_table template.
 sed -i -e "s/YYYY MM DD HH/${year} ${mon} ${day} ${hour}/g" diag_table
-sed -i -e "s/FHOUT/${RESTART_FREQ}/g" diag_table
+sed -i -e "s/FHOUT/${FHOUT}/g" diag_table
 /bin/cp -f $enkfscripts/field_table_${SUITE} field_table
 /bin/cp -f $enkfscripts/data_table . 
 /bin/rm -rf RESTART
@@ -220,7 +231,7 @@ if [ "$cold_start" == "true" ] || [ $skip_iau == "true" ] ; then
       externalic=F
       mountain=T
       iaudelthrs=-1
-      iaufhrs=6
+      iaufhrs=$ANALINC
       iau_inc_files=""
    else
       warm_start=F
@@ -249,8 +260,14 @@ else
          iau_inc_files="'fv3_increment3.nc','fv3_increment4.nc','fv3_increment5.nc','fv3_increment6.nc','fv3_increment7.nc','fv3_increment8.nc','fv3_increment9.nc'"
       elif [ "$iaufhrs" == "3,6,9" ]; then
          iau_inc_files="'fv3_increment3.nc','fv3_increment6.nc','fv3_increment9.nc'"
+      elif [ "$iaufhrs" == "1,2,3" ]; then
+         iau_inc_files="'fv3_increment1.nc','fv3_increment2.nc','fv3_increment3.nc'"
       elif [ "$iaufhrs" == "6" ]; then
-         iau_inc_files="'fv3_increment6.nc'"
+          iau_inc_files="'fv3_increment6.nc'"
+      elif [ "$iaufhrs" == "2" ]; then
+         iau_inc_files="'fv3_increment2.nc'"
+      elif [ "$iaufhrs" == "1" ]; then
+         iau_inc_files="'fv3_increment1.nc'"
       else
          echo "illegal value for iaufhrs"
          exit 1
@@ -258,7 +275,7 @@ else
       reslatlondynamics=""
       readincrement=F
    else
-      reslatlondynamics="fv3_increment6.nc"
+      reslatlondynamics="fv3_increment${ANALINC}.nc"
       readincrement=T
       iau_inc_files=""
    fi
@@ -282,8 +299,12 @@ snoid='SNOD'
 
 # Turn off snow analysis if it has already been used.
 # (snow analysis only available once per day at 18z)
+houra=18 # snow and sst analyses updated at 18z 
 fntsfa=${obs_datapath}/${RUN}.${yeara}${mona}${daya}/${houra}/atmos/${RUN}.t${houra}z.rtgssthr.grb
 fnacna=${obs_datapath}/${RUN}.${yeara}${mona}${daya}/${houra}/atmos/${RUN}.t${houra}z.seaice.5min.grb
+#fntsfa=${sstice_datapath}/era5_sst_${yeara}${mona}.grib
+#fnacna=${sstice_datapath}/era5_ice_${yeara}${mona}.grib
+
 fnsnoa=${obs_datapath}/${RUN}.${yeara}${mona}${daya}/${houra}/atmos/${RUN}.t${houra}z.snogrb_t1534.3072.1536
 fnsnog=${obs_datapath}/${RUN}.${yearprev}${monprev}${dayprev}/${hourprev}/atmos/${RUN}.t${hourprev}z.snogrb_t1534.3072.1536
 nrecs_snow=`$WGRIB ${fnsnoa} | grep -i $snoid | wc -l`
@@ -312,12 +333,6 @@ ls -l
 
 if [ $nanals2 -gt 0 ] && [ $nmem -le $nanals2 ]; then
    longer_fcst="YES"
-   # if longfcst_singletime=0, FHMAX_LONGER is divisible by 6, and only a single forecast time
-   # (the end of the forecast) beyond FHMAX is saved.  If longfcst_singletime=3, then it is 
-   # assumed that all the times in the 6-h window centered on FHMAX_LONGER - 3 are desired so
-   # that the GSI observer can be run.
-   longfcst_singletime=`python -c "from __future__ import print_function; print($FHMAX_LONGER % 6)"`
-   echo "longfcst_singletime=$longfcst_singletime"
 else
    longer_fcst="NO"
 fi
@@ -342,9 +357,7 @@ else
    fi
 fi
 
-if [ $FHCYC -gt 0 ]; then
-  skip_global_cycle=1
-fi
+skip_global_cycle=1
 
 if [ $cold_start = "false" ] && [ -z $skip_global_cycle ]; then
    # run global_cycle to update surface in restart file.
@@ -405,20 +418,24 @@ if [ $NST_GSI -gt 0 ] && [ $FHCYC -gt 0 ]; then
 fi
 export timestep_hrs=`python -c "from __future__ import print_function; print($dt_atmos / 3600.)"`
 if [ "${iau_delthrs}" != "-1" ]  && [ "${cold_start}" == "false" ]; then
-   FHROT=3
+   FHROT=$FHOFFSET
 else
-   if [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
-     FHROT=3
+   if ([ $ANALINC -eq 6 ] || [ $ANALINC -eq 2 ]) && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
+     FHROT=$FHOFFSET
    else
      FHROT=0
    fi
 fi
-if [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ] && [ "${iau_delthrs}" != "-1" ]; then
+if ([ $ANALINC -eq 6 ] || [ $ANALINC -eq 2 ]) && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ] && [ "${iau_delthrs}" != "-1" ]; then
    # cold start ICS at end of window, need one timestep restart
    restart_interval=`python -c "from __future__ import print_function; print($FHROT + $timestep_hrs)"`
    output_1st_tstep_rst=".true."
 else
-   restart_interval="$RESTART_FREQ -1"
+   if [ "${iau_delthrs}" != "-1" ]; then
+      restart_interval=$FHOFFSET
+   else
+      restart_interval=$ANALINC
+   fi
    output_1st_tstep_rst=".false."
 fi
 
@@ -535,14 +552,17 @@ fi
 export DATOUT=${DATOUT:-$datapathp1}
 # this is a hack to work around the fact that first time step history
 # file is not written if restart file requested at first time step.
-if [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
-   if [ ! -s  dynf003.nc ]; then
-     echo "dynf003.nc missing, copy dynf004"
-     /bin/cp -f dynf004.nc dynf003.nc
+if ([ $ANALINC -eq 6 ] || [ $ANALINC -eq 2 ]) && [ $cold_start == "true" ] && [ $analdate -gt 2021032400 ]; then
+   fh=$FHOFFSET
+   fh2=$[$fh+$FHOUT]
+   charfhr2="f"`printf %03i $fh2`
+   if [ ! -s  dynf00${FHOFFSET}.nc ]; then
+     echo "dynf00${FHOFFSET}.nc missing, copy dyn${charfhr2}"
+     /bin/cp -f dyn${charfhr2}.nc dynf00${FHOFFSET}.nc
    fi
-   if [ ! -s  phyf003.nc ]; then
-     echo "phyf003.nc missing, copy phyf004"
-     /bin/cp -f phyf004.nc phyf003.nc
+   if [ ! -s  phyf00${FHOFFSET}.nc ]; then
+     echo "phyf00${FHOFFSET}.nc missing, copy phy${charfhr2}"
+     /bin/cp -f phy${charfhr2}.nc phyf00${FHOFFSET}.nc
    fi
 fi
 # rename netcdf history files.
@@ -552,8 +572,7 @@ fh=$FHMIN
 while [ $fh -le $FHMAX ]; do
   charfhr="fhr"`printf %02i $fh`
   charfhr2="f"`printf %03i $fh`
-  if [ $longer_fcst = "YES" ] && [ $fh -eq $FHMAX ] && [ $longfcst_singletime -gt 0 ]; then
-     # copy file, it will be duplicated as sfg2
+  if [ $longer_fcst = "YES" ]; then
      /bin/cp -f dyn${charfhr2}.nc ${DATOUT}/sfg_${analdatep1}_${charfhr}_${charnanal}
   else
      /bin/mv -f dyn${charfhr2}.nc ${DATOUT}/sfg_${analdatep1}_${charfhr}_${charnanal}
@@ -562,8 +581,7 @@ while [ $fh -le $FHMAX ]; do
      echo "netcdffile missing..."
      exit 1
   fi
-  if [ $longer_fcst = "YES" ] && [ $fh -eq $FHMAX ] && [ $longfcst_singletime -gt 0 ]; then
-     # copy file, it will be duplicated as bfg2
+  if [ $longer_fcst = "YES" ]; then
      /bin/cp -f phy${charfhr2}.nc ${DATOUT}/bfg_${analdatep1}_${charfhr}_${charnanal}
   else
      /bin/mv -f phy${charfhr2}.nc ${DATOUT}/bfg_${analdatep1}_${charfhr}_${charnanal}
@@ -574,37 +592,43 @@ while [ $fh -le $FHMAX ]; do
   fi
   fh=$[$fh+$FHOUT]
 done
-if [ $longer_fcst = "YES" ]; then
-    if [ $longfcst_singletime -eq 0 ]; then
-       # save just the last file (to compare with IFS analysis in grid space, no time interp
-       # needed for GSI observer)
-       analdatep2=`$incdate $analdate $FHMAX_LONGER`
-       mkdir -p $datapath/$analdatep2
-       charfhr="fhr"`printf %02i $FHMAX_LONGER`
-       charfhr2="f"`printf %03i $FHMAX_LONGER`
-       /bin/mv -f dyn${charfhr2}.nc ${datapath}/${analdatep2}/sfg2_${analdatep2}_${charfhr}_${charnanal}
-       /bin/mv -f phy${charfhr2}.nc ${datapath}/${analdatep2}/bfg2_${analdatep2}_${charfhr}_${charnanal}
-    else
-       fh=`expr $FHMAX_LONGER - $ANALINC`
-       fhmax2=`expr $FHMAX_LONGER - $ANALINC \/ 2`
-       analdatep2=`$incdate $analdate $fhmax2`
-       mkdir -p $datapath/$analdatep2
-       while [ $fh -le $FHMAX_LONGER ]; do
-         charfhr="fhr"`printf %02i $fh`
-         charfhr2="f"`printf %03i $fh`
-         /bin/mv -f dyn${charfhr2}.nc ${datapath}/${analdatep2}/sfg2_${analdatep2}_${charfhr}_${charnanal}
-         if [ $? -ne 0 ]; then
-            echo "netcdffile missing..."
-            exit 1
-         fi
-         /bin/mv -f phy${charfhr2}.nc ${datapath}/${analdatep2}/bfg2_${analdatep2}_${charfhr}_${charnanal}
-         if [ $? -ne 0 ]; then
-            echo "netcdf file missing..."
-            exit 1
-         fi
-         fh=$[$fh+$FHOUT]
-       done
-    fi
+if [ $longer_fcst = "YES" ] ; then
+   if [ $ANALINC -eq 6 ]; then
+     fh1=`expr $FHMAX_LONGER -  6`
+     fhadd=12
+   elif [ $ANALINC -eq 2 ]; then
+     fh1=1
+     fhadd=4
+   elif [ $ANALINC -eq 1 ]; then
+     fh1=0
+     fhadd=3
+   fi
+   fh2=$FHMAX_LONGER
+   analdatep2=`$incdate $analdate $fhadd`
+   mkdir -p $datapath/$analdatep2
+   fh=$fh1
+   while [ $fh -le $fh2 ]; do
+     if [ $ANALINC -eq 1 ]; then
+        fhx=`expr $fh + 3`
+     elif [ $ANALINC -eq 2 ]; then
+        fhx=`expr $fh + 2`
+     else
+        fhx=$fh
+     fi
+     charfhr="fhr"`printf %02i $fhx`
+     charfhr2="f"`printf %03i $fh`
+     /bin/mv -f dyn${charfhr2}.nc ${datapath}/${analdatep2}/sfg2_${analdatep2}_${charfhr}_${charnanal}
+     if [ $? -ne 0 ]; then
+        echo "netcdffile missing..."
+        exit 1
+     fi
+     /bin/mv -f phy${charfhr2}.nc ${datapath}/${analdatep2}/bfg2_${analdatep2}_${charfhr}_${charnanal}
+     if [ $? -ne 0 ]; then
+        echo "netcdf file missing..."
+        exit 1
+     fi
+     fh=$[$fh+$FHOUT]
+   done
 fi
 /bin/rm -f phy*nc dyn*nc
 
@@ -616,7 +640,11 @@ if [ -z $dont_copy_restart ]; then # if dont_copy_restart not set, do this
    mkdir -p ${datapathp1}/${charnanal}/INPUT
    cd RESTART
    ls -l
-   datestring="${yrnext}${monnext}${daynext}.${hrnext}"
+   if [ $minnext -ne '00' ]; then
+      datestring="${yrnext}${monnext}${daynext}.${hrnext}${minnext}"
+   else
+      datestring="${yrnext}${monnext}${daynext}.${hrnext}"
+   fi
    for file in ${datestring}*nc; do
       file2=`echo $file | cut -f3-10 -d"."`
       /bin/mv -f $file ${datapathp1}/${charnanal}/INPUT/$file2

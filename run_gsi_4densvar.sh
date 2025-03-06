@@ -47,21 +47,21 @@ hha=`echo $adate | cut -c9-10`
 hham1=`echo $analdatem1 | cut -c9-10`
 hhg=`echo $gdate | cut -c9-10`
 RUN=${RUN:-gdas}
-prefix_obs=${RUN}.t${hha}z
-prefix_obsm1=${RUN}.t${hham1}z
-prefix_tbc=${RUN}.t${hhg}z
 suffix=tm00.bufr_d
 
 datges=${datapath2:-/lfs1/projects/fim/whitaker/gfsenkf_test/$adate}
 datgesm1=${datapathm1:-/lfs1/projects/fim/whitaker/gfsenkf_test/$gdate}
+ATMPREFIX=${ATMPREFIX:-'sfg'}
+SFCPREFIX=${SFCPREFIX:-'bfg'}
 adate0=`echo $adate | cut -c1-8`
 echo "adate = $adate"
-iy=`echo $adate | cut -c1-4`
-im=`echo $adate | cut -c5-6`
-id=`echo $adate | cut -c7-8`
-ih=`echo $adate | cut -c9-10`
+echo "obdate = $obdate"
+iy=`echo $obdate | cut -c1-4`
+im=`echo $obdate | cut -c5-6`
+id=`echo $obdate | cut -c7-8`
+ih=`echo $obdate | cut -c9-10`
 echo "iy,im,id,ih = $iy $im $id $ih"
-date_fhour=`$python ${enkfscripts}/getidate.py ${datges}/bfg_${adate}_fhr03_${charnanal}`
+date_fhour=`python ${enkfscripts}/getidate.py ${datges}/${SFCPREFIX}_${adate}_fhr0${ANALINC}_${charnanal}`
 fdatei=`echo $date_fhour | cut -f1 -d " "`
 fhr=`echo $date_fhour | cut -f2 -d " "`
 fdatev=`${incdate} $fdatei $fhr`
@@ -69,6 +69,8 @@ echo "fdatei=$fdatei fhr=$fhr fdatev=$fdatev"
 gdate0=`echo $gdate | cut -c1-8`
 obs_datapath=${obs_datapath:-/scratch1/NCEPDEV/global/glopara/dump}
 datobs=$obs_datapath/${RUN}.${iy}${im}${id}/${ih}/atmos
+prefix_obs=${RUN}.t${ih}z
+prefix_tbc=${RUN}.t${hhg}z
 
 # Set runtime and save directories
 tmpdir=${tmpdir:-$datges/gsitmp$$}
@@ -109,6 +111,9 @@ JCAP_ENS=${JCAP_ENS:-$JCAP}
 LATA_ENS=${LATA_ENS:-$LATA}
 LONA_ENS=${LONA_ENS:-$LONA}
 export NLAT_ENS=$((${LATA_ENS}+2))
+export time_window_max=${time_window_max:-3}
+export min_offset=${min_offset:-180}
+export nhr_assimilation=${nhr_assimilation:-6}
 
 
 SATANGO=${SATANGO:-$savdir/${RUN}.t${hha}z.satang}
@@ -135,7 +140,30 @@ if [ $use_correlated_oberrs == ".true." ];  then
 else
   lupdqc=.false.
 fi
-SETUP="verbose=.true.,reduce_diag=.true.,lwrite_peakwt=.true.,lread_obs_save=$lread_obs_save,lread_obs_skip=$lread_obs_skip,l4densvar=.true.,ens_nstarthr=3,iwrtinc=-1,nhr_assimilation=6,nhr_obsbin=$FHOUT,use_prepb_satwnd=$use_prepb_satwnd,lwrite4danl=$lwrite4danl,passive_bc=.true.,newpc4pred=.true.,adp_anglebc=.true.,angord=4,use_edges=.false.,diag_precon=.true.,step_start=1.e-3,emiss_bc=.true.,lobsdiag_forenkf=$lobsdiag_forenkf,lwrite_predterms=.true.,thin4d=.true.,lupdqc=$lupdqc,nhr_anal=$iaufhrs"
+nhr_obsbin=$FHOUT
+if [ $ANALINC -eq 6 ]; then
+   min_offset=180
+   l4densvar=.true.
+   thin4d=.true.
+   time_window_max=3
+   nhr_assimilation=6
+elif [ $ANALINC -eq 2 ]; then
+   min_offset=60
+   l4densvar=.true.
+   thin4d=.true.
+   time_window_max=1
+   nhr_assimilation=2
+elif [ $ANALINC -eq 1 ]; then
+   min_offset=30
+   l4densvar=.false.
+   thin4d=.false.
+   lwrite4danl=.false.
+   time_window_max=0.5
+   nhr_assimilation=1
+else
+   echo "ANALINC must be 1,2 or 6"
+fi
+SETUP="verbose=.true.,reduce_diag=.true.,lwrite_peakwt=.true.,lread_obs_save=$lread_obs_save,lread_obs_skip=$lread_obs_skip,l4densvar=$l4densvar,ens_nstarthr=$FHMIN,iwrtinc=-1,nhr_assimilation=$nhr_assimilation,nhr_obsbin=$nhr_obsbin,use_prepb_satwnd=$use_prepb_satwnd,lwrite4danl=$lwrite4danl,passive_bc=.true.,newpc4pred=.true.,adp_anglebc=.true.,angord=4,use_edges=.false.,diag_precon=.true.,step_start=1.e-3,emiss_bc=.true.,lobsdiag_forenkf=$lobsdiag_forenkf,lwrite_predterms=.true.,thin4d=$thin4d,lupdqc=$lupdqc,min_offset=$min_offset,offtime_data=.true.,nhr_cycle=$ANALINC,lwrite_sfcanl=.false.,nhr_anal=$iaufhrs"
 
 if [[ "$HXONLY" = "YES" ]]; then
    #SETUP="$SETUP,lobserver=.true.,l4dvar=.true." # can't use reduce_diag=T
@@ -143,14 +171,13 @@ if [[ "$HXONLY" = "YES" ]]; then
 fi
 if [[ "$HXONLY" != "YES" ]]; then
    if [[ $beta_s0 > 0.999 ]]; then # 3dvar or hybrid gain
-      STRONGOPTS="tlnmc_option=1,nstrong=1,nvmodes_keep=8,period_max=6.,period_width=1.5"
-      if [ $NOOUTERLOOP == "YES" ]; then
-         SETUP="$SETUP,miter=1,niter(1)=150,niter(2)=0"
-      else
-         SETUP="$SETUP,miter=2,niter(1)=100,niter(2)=100"
-      fi
+      STRONGOPTS="tlnmc_option=1,nstrong=1,nvmodes_keep=8,period_max=6.,period_width=1.5,baldiag_full=.true.,baldiag_inc=.true.,"
+      SETUP="$SETUP,miter=1,niter(1)=150,niter(2)=0"
    else # envar
+      # tlnmc on full increment, 4denvar
       STRONGOPTS="tlnmc_option=3,nstrong=1,nvmodes_keep=48,period_max=6.,period_width=1.5,baldiag_full=.true.,baldiag_inc=.true.,"
+      # tlnmc on full increment, 3denvar
+      #STRONGOPTS="tlnmc_option=2,nstrong=1,nvmodes_keep=48,period_max=6.,period_width=1.5,baldiag_full=.true.,baldiag_inc=.true.,"
       # balance constraint on 3dvar part of envar increment
       #STRONGOPTS="tlnmc_option=4,nstrong=1,nvmodes_keep=48,period_max=6.,period_width=1.5,baldiag_full=.true.,baldiag_inc=.true.,"
       # no strong bal constraint
@@ -218,7 +245,7 @@ fi
 cat <<EOF > gsiparm.anl
  &SETUP
    niter_no_qc(1)=50,niter_no_qc(2)=0,
-   write_diag(1)=.true.,write_diag(2)=.false.,write_diag(3)=.true.,
+   write_diag(1)=.true.,write_diag(2)=.true.,write_diag(3)=.true.,
    netcdf_diag=.true.,binary_diag=.false.,
    qoption=2,
    factqmin=0.5,factqmax=0.0002,deltim=$DELTIM,
@@ -262,13 +289,13 @@ cat <<EOF > gsiparm.anl
  &OBSQC
    dfact=0.75,dfact1=3.0,noiqc=.true.,oberrflg=.false.,c_varqc=0.04,
    use_poq7=.true.,qc_noirjaco3_pole=.true.,vqc=.false.,nvqc=.true.,
-   aircraft_t_bc=$aircraft_t_bc,biaspredt=1.0e5,upd_aircraft=$upd_aircraft,cleanup_tail=.true.,
+   aircraft_t_bc=.true.,biaspredt=1.0e5,upd_aircraft=.true.,cleanup_tail=.true.,
    tcp_width=60.0,tcp_ermin=2.0,tcp_ermax=12.0,
    $OBSQC
  /
  /
  &OBS_INPUT
-   dmesh(1)=$dmesh1,dmesh(2)=$dmesh2,dmesh(3)=$dmesh3,time_window_max=3.0,
+   dmesh(1)=$dmesh1,dmesh(2)=$dmesh2,dmesh(3)=$dmesh3,time_window_max=$time_window_max,time_window_rad=$time_window_max
   $OBSINPUT
 /
 OBS_INPUT::
@@ -387,6 +414,7 @@ OBS_INPUT::
    gmibufr        gmi         gpm         gmi_gpm             0.0     3     0
    saphirbufr     saphir      meghat      saphir_meghat       0.0     3     0
    ahibufr        ahi         himawari8   ahi_himawari8       0.0     1     0
+   ahibufr        ahi         himawari9   ahi_himawari9       0.0     1     0
    abibufr        abi         g16         abi_g16             0.0     1     0
    abibufr        abi         g17         abi_g17             0.0     1     0
    rapidscatbufr  uv          null        uv                  0.0     0     0
@@ -419,7 +447,8 @@ OBS_INPUT::
    $SINGLEOB
  /
 &NST
-  nst_gsi=$NST_GSI,$NST
+  nst_gsi=$NST_GSI,
+  $NST
 /
 EOF
 
@@ -511,6 +540,7 @@ for file in $(awk '{if($1!~"!"){print $1}}' satinfo | sort | uniq); do
    $nln $fixcrtm/${file}.SpcCoeff.bin ./crtm_coeffs/${file}.SpcCoeff.bin
    $nln $fixcrtm/${file}.TauCoeff.bin ./crtm_coeffs/${file}.TauCoeff.bin
 done
+${NLN} ${RTMFIX}/amsua_metop-a_v2.SpcCoeff.bin ./crtm_coeffs/amsua_metop-a_v2.SpcCoeff.bin
 
 $nln $fixcrtm/Nalli.IRwater.EmisCoeff.bin   ./crtm_coeffs/Nalli.IRwater.EmisCoeff.bin
 $nln $fixcrtm/NPOESS.IRice.EmisCoeff.bin    ./crtm_coeffs/NPOESS.IRice.EmisCoeff.bin
@@ -523,6 +553,7 @@ $nln $fixcrtm/NPOESS.VISwater.EmisCoeff.bin ./crtm_coeffs/NPOESS.VISwater.EmisCo
 $nln $fixcrtm/FASTEM6.MWwater.EmisCoeff.bin ./crtm_coeffs/FASTEM6.MWwater.EmisCoeff.bin
 $nln $fixcrtm/AerosolCoeff.bin              ./crtm_coeffs/AerosolCoeff.bin
 $nln $fixcrtm/CloudCoeff.bin                ./crtm_coeffs/CloudCoeff.bin
+#$nln $fixcrtm/CloudCoeff.GFDLFV3.-109z-1.bin ./crtm_coeffs/CloudCoeff.bin
 
 # link observational data to $tmpdir
 if [[ ! -s $datobs/${prefix_obs}.prepbufr ]]; then
@@ -675,8 +706,8 @@ fi
 if [[ -s $datobs/${prefix_obs}.gsrcsr.${suffix} ]]; then
 $nln $datobs/${prefix_obs}.gsrcsr.${suffix}      ./abibufr
 fi
-if [[ -s $datobs/${prefix_obs}.gm1cr.${suffix} ]]; then
-$nln $datobs/${prefix_obs}.gm1cr.${suffix}      ./gmibufr
+if [[ -s $datobs/${prefix_obs}.gmi1cr.${suffix} ]]; then
+$nln $datobs/${prefix_obs}.gmi1cr.${suffix}      ./gmibufr
 fi
 if [[ -s $datobs/${prefix_obs}.cris.${suffix} ]]; then
 $nln $datobs/${prefix_obs}.cris.${suffix}      ./crisbufr
@@ -716,45 +747,72 @@ $nln $GBIAS_PC           ./satbias_pc
 $nln $GSATANG            ./satbias_angle
 $nln $GBIASAIR           ./aircftbias_in
 
-SFCG03=${SFCG03:-$datges/bfg_${adate}_fhr03_${charnanal}}
-$nln $SFCG03               ./sfcf03
-SFCG06=${SFCG06:-$datges/bfg_${adate}_fhr06_${charnanal}}
-$nln $SFCG06               ./sfcf06
-SFCG09=${SFCG09:-$datges/bfg_${adate}_fhr09_${charnanal}}
-$nln $SFCG09               ./sfcf09
+if [ $ANALINC -eq 6 ]; then
 
-SIGG03=${SIGG03:-$datges/sfg_${adate}_fhr03_${charnanal}}
+SFCG03=${SFCG03:-$datges/${SFCPREFIX}_${adate}_fhr03_${charnanal}}
+$nln $SFCG03               ./sfcf03
+SFCG06=${SFCG06:-$datges/${SFCPREFIX}_${adate}_fhr06_${charnanal}}
+$nln $SFCG06               ./sfcf06
+SFCG09=${SFCG09:-$datges/${SFCPREFIX}_${adate}_fhr09_${charnanal}}
+$nln $SFCG09               ./sfcf09
+SIGG03=${SIGG03:-$datges/${ATMPREFIX}_${adate}_fhr03_${charnanal}}
 $nln $SIGG03               ./sigf03
-SIGG06=${SIGG06:-$datges/sfg_${adate}_fhr06_${charnanal}}
+SIGG06=${SIGG06:-$datges/${ATMPREFIX}_${adate}_fhr06_${charnanal}}
 $nln $SIGG06               ./sigf06
-SIGG09=${SIGG09:-$datges/sfg_${adate}_fhr09_${charnanal}}
+SIGG09=${SIGG09:-$datges/${ATMPREFIX}_${adate}_fhr09_${charnanal}}
 $nln $SIGG09               ./sigf09
 
-if [[ "$HRLY_BKG" = "YES" ]]; then
-SFCG04=${SFCG04:-$datges/bfg_${adate}_fhr04_${charnanal}}
+if [ $HRLY_BKG == "YES" ]; then
+SFCG04=${SFCG04:-$datges/${SFCPREFIX}_${adate}_fhr04_${charnanal}}
 $nln $SFCG04               ./sfcf04
-SFCG05=${SFCG05:-$datges/bfg_${adate}_fhr05_${charnanal}}
+SFCG05=${SFCG05:-$datges/${SFCPREFIX}_${adate}_fhr05_${charnanal}}
 $nln $SFCG05               ./sfcf05
-SFCG07=${SFCG07:-$datges/bfg_${adate}_fhr07_${charnanal}}
+SFCG07=${SFCG07:-$datges/${SFCPREFIX}_${adate}_fhr07_${charnanal}}
 $nln $SFCG07               ./sfcf07
-SFCG08=${SFCG08:-$datges/bfg_${adate}_fhr08_${charnanal}}
+SFCG08=${SFCG08:-$datges/${SFCPREFIX}_${adate}_fhr08_${charnanal}}
 $nln $SFCG08               ./sfcf08
-SIGG04=${SIGG04:-$datges/sfg_${adate}_fhr04_${charnanal}}
+SIGG04=${SIGG04:-$datges/${ATMPREFIX}_${adate}_fhr04_${charnanal}}
 $nln $SIGG04               ./sigf04
-SIGG05=${SIGG05:-$datges/sfg_${adate}_fhr05_${charnanal}}
+SIGG05=${SIGG05:-$datges/${ATMPREFIX}_${adate}_fhr05_${charnanal}}
 $nln $SIGG05               ./sigf05
-SIGG07=${SIGG07:-$datges/sfg_${adate}_fhr07_${charnanal}}
+SIGG07=${SIGG07:-$datges/${ATMPREFIX}_${adate}_fhr07_${charnanal}}
 $nln $SIGG07               ./sigf07
-SIGG08=${SIGG08:-$datges/sfg_${adate}_fhr08_${charnanal}}
+SIGG08=${SIGG08:-$datges/${ATMPREFIX}_${adate}_fhr08_${charnanal}}
 $nln $SIGG08               ./sigf08
+fi
+
+elif [ $ANALINC -eq 2 ]; then
+SIGG03=${SIGG03:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
+SIGG06=${SIGG06:-$datges/${ATMPREFIX}_${adate}_fhr02_${charnanal}}
+SIGG09=${SIGG09:-$datges/${ATMPREFIX}_${adate}_fhr03_${charnanal}}
+$nln $SIGG03               ./sigf01
+$nln $SIGG06               ./sigf02
+$nln $SIGG09               ./sigf03
+SFCG03=${SFCGG03:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
+SFCG06=${SFCGG06:-$datges/${SFCPREFIX}_${adate}_fhr02_${charnanal}}
+SFCG09=${SFCGG09:-$datges/${SFCPREFIX}_${adate}_fhr03_${charnanal}}
+$nln $SFCG03               ./sfcf01
+$nln $SFCG06               ./sfcf02
+$nln $SFCG09               ./sfcf03
+
+elif [ $ANALINC -eq 1 ]; then
+SIGG06=${SIGG06:-$datges/${ATMPREFIX}_${adate}_fhr01_${charnanal}}
+$nln $SIGG06               ./sigf01
+#$nln ./sigf01 ./sigf02
+SFCG06=${SFCG06:-$datges/${SFCPREFIX}_${adate}_fhr01_${charnanal}}
+$nln $SFCG06               ./sfcf01
+#$nln ./sfcf01 ./sfcf02
+else
+echo "ANALINC must be 1,2 or 6"
+
 fi
 
 if [[ $beta_s0 < 0.999 ]]; then
 ln -s $datges/ensmem*.pe* .
 ln -s $datges/control*.pe* .
-fh=3
-while [ $fh -le 9 ] ;do
-for ensfile in $datges/sfg_${adate}*fhr0${fh}*mem???; do
+fh=$FHMIN
+while [ $fh -le $FHMAX ] ;do
+for ensfile in $datges/${ATMPREFIX}_${adate}*fhr0${fh}*mem???; do
  ensfilename=`basename $ensfile`
  memnum=`echo $ensfilename | cut -f4 -d"_" | cut -c4-6`
  $nln $ensfile ./sigf0${fh}_ens_mem${memnum}
@@ -765,7 +823,7 @@ fi
 fi
 
 # make symlinks for diag files to initialize angle dependent bias correction for new channels.
-satdiag="ssu_n14 hirs2_n14 msu_n14 sndr_g08 sndr_g09 sndr_g11 sndr_g12 sndr_g13 sndr_g08_prep sndr_g11_prep sndr_g12_prep sndr_g13_prep sndrd1_g11 sndrd2_g11 sndrd3_g11 sndrd4_g11 sndrd1_g12 sndrd2_g12 sndrd3_g12 sndrd4_g12 sndrd1_g13 sndrd2_g13 sndrd3_g13 sndrd4_g13 sndrd1_g14 sndrd2_g14 sndrd3_g14 sndrd4_g14 sndrd1_g15 sndrd2_g15 sndrd3_g15 sndrd4_g15 hirs2_n14 hirs3_n15 hirs3_n16 hirs3_n17 amsua_n15 amsua_n16 amsua_n17 amsub_n15 amsub_n16 amsub_n17 hsb_aqua airs_aqua amsua_aqua imgr_g08 imgr_g11 imgr_g12 imgr_g14 imgr_g15 gome_metop-a omi_aura mls_aura ssmi_f13 ssmi_f14 ssmi_f15 hirs4_n18 hirs4_metop-a amsua_n18 amsua_metop-a mhs_n18 mhs_metop-a amsre_low_aqua amsre_mid_aqua amsre_hig_aqua ssmis_las_f16 ssmis_uas_f16 ssmis_img_f16 ssmis_env_f16 ssmis_las_f17 ssmis_uas_f17 ssmis_img_f17 ssmis_env_f17 ssmis_las_f18 ssmis_uas_f18 ssmis_img_f18 ssmis_env_f18 ssmis_las_f19 ssmis_uas_f19 ssmis_img_f19 ssmis_env_f19 ssmis_las_f20 ssmis_uas_f20 ssmis_img_f20 ssmis_env_f20 ssmis_f20 iasi_metop-a hirs4_n19 amsua_n19 mhs_n19 seviri_m08 seviri_m09 seviri_m10 cris_npp atms_npp hirs4_metop-b amsua_metop-b mhs_metop-b iasi_metop-b gome_metop-b avhrr_n18 avhrr_metop-a avhrr_n15 avhrr_n16 avhrr_n17 avhrr_n19 avhrr_metop-a amsr2_gcom-w1 gmi_gpm saphir_meghat ahi_himawari8 abi_g16 abi_g17 amsua_metop-c mhs_metop-c iasi_metop-c avhrr_metop-c cris-fsr_npp cris-fsr_n20 atms_n20"
+satdiag="ssu_n14 hirs2_n14 msu_n14 sndr_g08 sndr_g09 sndr_g11 sndr_g12 sndr_g13 sndr_g08_prep sndr_g11_prep sndr_g12_prep sndr_g13_prep sndrd1_g11 sndrd2_g11 sndrd3_g11 sndrd4_g11 sndrd1_g12 sndrd2_g12 sndrd3_g12 sndrd4_g12 sndrd1_g13 sndrd2_g13 sndrd3_g13 sndrd4_g13 sndrd1_g14 sndrd2_g14 sndrd3_g14 sndrd4_g14 sndrd1_g15 sndrd2_g15 sndrd3_g15 sndrd4_g15 hirs2_n14 hirs3_n15 hirs3_n16 hirs3_n17 amsua_n15 amsua_n16 amsua_n17 amsub_n15 amsub_n16 amsub_n17 hsb_aqua airs_aqua amsua_aqua imgr_g08 imgr_g11 imgr_g12 imgr_g14 imgr_g15 gome_metop-a omi_aura mls_aura ssmi_f13 ssmi_f14 ssmi_f15 hirs4_n18 hirs4_metop-a amsua_n18 amsua_metop-a mhs_n18 mhs_metop-a amsre_low_aqua amsre_mid_aqua amsre_hig_aqua ssmis_las_f16 ssmis_uas_f16 ssmis_img_f16 ssmis_env_f16 ssmis_las_f17 ssmis_uas_f17 ssmis_img_f17 ssmis_env_f17 ssmis_las_f18 ssmis_uas_f18 ssmis_img_f18 ssmis_env_f18 ssmis_las_f19 ssmis_uas_f19 ssmis_img_f19 ssmis_env_f19 ssmis_las_f20 ssmis_uas_f20 ssmis_img_f20 ssmis_env_f20 ssmis_f20 iasi_metop-a hirs4_n19 amsua_n19 mhs_n19 seviri_m08 seviri_m09 seviri_m10 cris_npp atms_npp hirs4_metop-b amsua_metop-b mhs_metop-b iasi_metop-b gome_metop-b avhrr_n18 avhrr_metop-a avhrr_n15 avhrr_n16 avhrr_n17 avhrr_n19 avhrr_metop-a amsr2_gcom-w1 gmi_gpm saphir_meghat ahi_himawari8 ahi_himawari9 abi_g16 abi_g17 amsua_metop-c mhs_metop-c iasi_metop-c avhrr_metop-c cris-fsr_npp cris-fsr_n20 atms_n20"
 alldiag="$satdiag pcp_ssmi_dmsp pcp_tmi_trmm conv_tcp conv_gps conv_t conv_q conv_uv conv_ps sbuv2_n11 sbuv2_n14 sbuv2_n16 sbuv2_n17 sbuv2_n18 sbuv2_n19 gome_metop-a gome_metop-b omi_aura mls30_aura ompsnp_npp ompstc8_npp gome-metop-c pcp_ssmi_dmsp pcp_tmi_trmm"
 string='ges'
 for type in $satdiag; do
@@ -782,7 +840,7 @@ done
 
 # Run gsi.
 #if [ -s ./satbias_in ] && [ -s ./satbias_angle ] && [ -s ./sfcf03 ] && [ -s ./sfcf06 ] && [ -s ./sfcf09 ] && [ -s ./sigf03 ] && [ -s ./sigf06 ] && [ -s ./sigf09 ] ; then
-if [[ $NOSAT == "YES" ||  -s ./satbias_in ]]  && [ -s ./sfcf03 ] && [ -s ./sfcf06 ] && [ -s ./sfcf09 ] && [ -s ./sigf03 ] && [ -s ./sigf06 ] && [ -s ./sigf09 ] ; then
+if [[ $NOSAT == "YES" ||  -s ./satbias_in ]]  && [ -s $SFC06 ] && [ -s $SIGG06 ] ; then
 cat gsiparm.anl
 ulimit -s unlimited
 
@@ -790,23 +848,19 @@ pwd
 ls -l
 echo "Time before GSI `date` "
 export PGM=$tmpdir/gsi.x
+export FORT_BUFFERED=TRUE
 ${enkfscripts}/runmpi
-rc=$?
+#rc=$?
 #if [[ $rc -ne 0 ]];then
 #  echo "GSI failed with exit code $rc"
 #  exit $rc
 #fi
+ls -l
 else
 echo "some input files missing, exiting ..."
 ls -l ./satbias_in
-ls -l ./satbias_angle
-ls -l ./sfcf03
-ls -l ./sfcf06
-ls -l ./sfcf09
-ls -l ./sfcanl
-ls -l ./sigf03
-ls -l ./sigf06
-ls -l ./sigf09
+ls -l $SFC06
+ls -l $SIGG06
 exit 1
 fi
 
@@ -818,6 +872,12 @@ cat fort.2* > $savdir/gsistats.${adate}_${charnanal2}
 #ls -l
 if [[ "$HXONLY" = "NO" ]]; then
    if [ -s ./siganl ] && [ -s ./satbias_out ]; then
+      if [ -s ./siga01 ]; then
+         $nmv siga01          $SIGANL01
+      fi
+      if [ -s ./siga02 ]; then
+         $nmv siga02          $SIGANL02
+      fi
       if [ -s ./siga03 ]; then
          $nmv siga03          $SIGANL03
       fi

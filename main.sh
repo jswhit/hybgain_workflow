@@ -23,16 +23,25 @@ export mon=`echo $analdate | cut -c5-6`
 export day=`echo $analdate | cut -c7-8`
 export hr=`echo $analdate | cut -c9-10`
 # previous analysis time.
-export FHOFFSET=`expr $ANALINC \/ 2`
+if [ $ANALINC -eq 1 ]; then
+   export FHOFFSET=0.5
+else
+   export FHOFFSET=`expr $ANALINC \/ 2`
+fi
 export analdatem1=`${incdate} $analdate -$ANALINC`
 # next analysis time.
 export analdatep1=`${incdate} $analdate $ANALINC`
-# beginning of current assimilation window
-export analdatem3=`${incdate} $analdate -$FHOFFSET`
-# beginning of next assimilation window
-export analdatep1m3=`${incdate} $analdate $FHOFFSET`
+if [ $ANALINC -eq 1 ]; then
+   export analdatep1m3=`${incdate2} ${analdate}00 30`
+   export analdatem3=`${incdate2} ${analdate}00 -30`
+else
+   export analdatep1m3=`${incdate} $analdate $FHOFFSET`
+   export analdatem3=`${incdate} $analdate -$FHOFFSET`
+fi
 export hrp1=`echo $analdatep1 | cut -c9-10`
 export hrm1=`echo $analdatem1 | cut -c9-10`
+
+export obdate=`python findobdate.py $analdate`
 
 # if $REALTIME == "YES", use OZINFO,CONVINFO,SATINFO set in config.sh
 if [ "$REALTIME" == "NO" ]; then
@@ -189,14 +198,6 @@ mkdir -p ${current_logdir}
 export PREINP="${RUN}.t${hr}z."
 export PREINP1="${RUN}.t${hrp1}z."
 export PREINPm1="${RUN}.t${hrm1}z."
-
-# if nanals2>0, extend nanals2 members out to FHMAX_LONGER
-if [ $nanals2 -gt 0 ] && [ $cold_start != "true" ]; then
-  echo "will run $nanals2 members out to hour $FHMAX_LONGER"
-else
-  export nanals2=-1
-  echo "no longer forecast extension"
-fi
 
 if [ $fg_only ==  'false' ]; then
 
@@ -430,9 +431,9 @@ if [ $replay_controlfcst == 'true' ] && [ $replay_run_observer == "true" ]; then
    fi
 fi
 
-# run gsi observer on ensemble mean forecast extension
-run_gsiobserver=`python -c "from __future__ import print_function; print($FHMAX_LONGER % 6)"`
-if [ $nanals2 -gt 0 ] && [ $run_gsiobserver -ne 0 ] && [ -s $datapath2/sfg2_${analdate}_fhr${FHMAX_LONGER}_ensmean ]; then
+## run gsi observer on ensemble mean forecast extension
+#run_gsiobserver=`python -c "from __future__ import print_function; print($FHMAX_LONGER % 6)"`
+if [ $ANALINC -eq 6 ] && [ -s $datapath2/sfg2_${analdate}_fhr${FHMAX_LONGER}_ensmean ]; then
    # symlink ensmean files (fhr12_ensmean --> fhr06_ensmean2, etc)
    fh=`expr $FHMAX_LONGER - $ANALINC`
    nhr=3
@@ -458,9 +459,117 @@ if [ $nanals2 -gt 0 ] && [ $run_gsiobserver -ne 0 ] && [ -s $datapath2/sfg2_${an
      echo "$analdate gsi observer did not complete successfully, exiting `date`"
      exit 1
    fi
+elif [ -s $datapath2/sfg2_${analdate}_fhr06_ensmean ]; then
+   export charnanal='ensmean' 
+   export charnanal2='ensmean2' 
+   export lobsdiag_forenkf='.false.'
+   export skipcat="false"
+   FHMIN_SAVE=$FHMIN
+   FHMAX_SAVE=$FHMAX
+   ANALINC_SAVE=$ANALINC
+   CONVINFO_SAVE=$CONVINFAO
+   export FHMIN=3
+   export FHMAX=9
+   export ANALINC=6
+   export CONVINFO=${enkfscripts}/global_convinfo.txt6
+   export ATMPREFIX='sfg2'
+   export SFCPREFIX='bfg2'
+   analdatem1_save=$analdatem1
+   datapathm1_save=$datapathm1
+   RUN_save=$RUN
+   export RUN="gdas"
+   if [ ! -z $biascorrdir ]; then # non-cycled bias correction files
+      export analdatem1=${obdate}
+      export hrm1=`echo $analdatem1 | cut -c9-10`
+      export datapathm1="${datapath}/${analdatem1}/"
+      export PREINPm1="gdas.t${hrm1}z."
+   fi
+   echo "$analdate run gsi observer with `printenv | grep charnanal` `date`"
+   sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver2.out 2>&1
+   # once observer has completed, check log files.
+   gsi_done=`cat ${current_logdir}/run_gsi_observer.log`
+   if [ $gsi_done == 'yes' ]; then
+     echo "$analdate gsi observer completed successfully `date`"
+   else
+     echo "$analdate gsi observer did not complete successfully, exiting `date`"
+     exit 1
+   fi
+   if [ $replay_controlfcst == 'true' ] && [ $replay_run_observer == "true" ]; then
+      export charnanal='control'
+      export charnanal2='control2'
+      echo "$analdate run gsi observer with `printenv | grep charnanal` `date`"
+      sh ${enkfscripts}/run_gsiobserver.sh > ${current_logdir}/run_gsiobserver2c.out 2>&1
+      # once observer has completed, check log files.
+      gsi_done=`cat ${current_logdir}/run_gsi_observer.log`
+      if [ $gsi_done == 'yes' ]; then
+        echo "$analdate gsi observer completed successfully `date`"
+      else
+        echo "$analdate gsi observer did not complete successfully, exiting `date`"
+        exit 1
+      fi
+   fi
+   export FHMIN=$FHMIN_SAVE
+   export FHMAX=$FHMAX_SAVE
+   export ANALINC=$ANALINC_SAVE
+   export CONVINFO=$CONVINFO_SAVE
+   export analdatem1=$analdatem1_save
+   export datapathm1=$datapathm1_save
+   export RUN=$RUN_save
+   unset ATMPREFIX
+   unset SFCPREFIX
 fi
 
 fi # skip to here if fg_only = true
+
+if [ $FHCYC -gt 0 ]; then
+   if [ $hr = "00" ] || [ $hr = "06" ] || [ $hr = "12" ] || [ $hr = "18" ]; then
+    echo "gcycle will be run with FHCYC=$FHCYC"
+   else
+    export FHCYC=0
+    echo "don't run gcycle"
+   fi
+fi
+
+if [ $nanals2 -gt 0 ]; then
+   if [ $ANALINC -eq 6 ]; then
+     if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
+        export nanals2=-1
+        echo "no longer forecast extension"
+     else
+        echo "will run $nanals2 members out to hour $FHMAX_LONGER"
+     fi
+   elif [ $ANALINC -eq 2 ]; then
+      # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
+      # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
+      if [ $hr = "02" ] || [ $hr = "08" ] || [ $hr = "14" ] || [ $hr = "20" ] ; then
+        if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
+           export nanals2=-1
+           echo "no longer forecast extension"
+        else
+           echo "will run $nanals2 members out to hour $FHMAX_LONGER"
+        fi
+      else
+        export nanals2=-1
+        echo "no longer forecast extension"
+      fi
+   elif [ $ANALINC -eq 1 ]; then
+      # if nanals2>0, extend nanals2 members out to FHMAX_LONGER=9
+      # but only at 02,08,14,22 UTC (for comparison with 6-h cycled system)
+      if [ $hr = "03" ] || [ $hr = "09" ] || [ $hr = "15" ] || [ $hr = "21" ] ; then
+        if [ $cold_start == "true" ] || [ ! -z $skip_calc_increment ]; then
+           export nanals2=-1
+           echo "no longer forecast extension"
+        else
+           echo "will run $nanals2 members out to hour $FHMAX_LONGER"
+        fi
+      else
+        export nanals2=-1
+        echo "no longer forecast extension"
+      fi
+   fi
+else
+   echo "no longer forecast extension"
+fi
 
 if [ $replay_controlfcst == 'true' ]; then
     echo "$analdate run high-res control first guess `date`"
